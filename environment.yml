@@ -1,0 +1,25 @@
+name: meatlens-pork-training
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - jupyterlab
+  - ipykernel
+  - nbformat
+  - nbclient
+  - numpy
+  - pandas
+  - openpyxl
+  - pillow
+  - scipy
+  - scikit-image
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - pytest
+  - pip:
+      - tensorflow==2.16.1
+      - tf2onnx==1.16.1
+      - onnx==1.17.0
+      - onnxruntime==1.19.2

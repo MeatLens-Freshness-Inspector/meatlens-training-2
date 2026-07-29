@@ -1,0 +1,7 @@
+for-deletion
+.ipynb_checkpoints/
+__pycache__/
+.pytest_cache/
+generated_splits/
+training_outputs/
+data/
