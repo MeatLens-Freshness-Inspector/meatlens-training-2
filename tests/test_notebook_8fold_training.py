@@ -76,3 +76,72 @@ def test_train_8fold_mobilenetv3small_writes_fold_artifacts(tmp_path: Path) -> N
     assert (output_root / "models" / "processed_roi8_cnn_only_fold1_seed42.keras").exists()
     assert (output_root / "predictions" / "processed_roi8_cnn_only_fold1_seed42_test_predictions.csv").exists()
     assert (output_root / "figures" / "processed_roi8_cnn_only_fold1_seed42_confusion_matrix.png").exists()
+
+
+def test_train_8fold_mobilenetv3small_writes_procedure_metrics(tmp_path: Path) -> None:
+    generated_splits_root = tmp_path / "generated_splits"
+    processed_manifest_path = generated_splits_root / "processed_manifest.csv"
+    processed_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    rows: list[dict[str, object]] = []
+    for sample_number in range(1, 9):
+        for label, color in {
+            "fresh": (210, 120, 120),
+            "not fresh": (170, 140, 110),
+            "spoiled": (110, 150, 110),
+        }.items():
+            image_dir = tmp_path / "data" / "raw_center_crop_224" / f"sample {sample_number}" / label
+            image_dir.mkdir(parents=True, exist_ok=True)
+            image_path = image_dir / f"sample_{sample_number}_{label.replace(' ', '_')}.jpg"
+            Image.new("RGB", (224, 224), color=color).save(image_path)
+            rows.append(
+                {
+                    "image_file_name": image_path.name,
+                    "label": label,
+                    "sample_number": str(sample_number),
+                    "sample_id": f"sample_{sample_number}",
+                    "local_image_path": str(image_path),
+                    "input_mode": "raw_center_crop_224",
+                }
+            )
+
+    pd.DataFrame(rows).to_csv(processed_manifest_path, index=False)
+
+    execute_notebook(
+        Path("03_build_cross_rotation_splits.ipynb"),
+        overrides={
+            "NOTEBOOK_TEST_MODE": True,
+            "PROCESSED_MANIFEST_PATH": str(processed_manifest_path),
+            "GENERATED_SPLITS_ROOT": str(generated_splits_root),
+        },
+        cwd=Path.cwd(),
+    )
+
+    training_outputs_root = tmp_path / "training_outputs"
+    execute_notebook(
+        Path("04_train_8fold_mobilenetv3small.ipynb"),
+        overrides={
+            "NOTEBOOK_TEST_MODE": True,
+            "SKIP_GPU_CHECK": True,
+            "INPUT_MODE": "raw_center_crop_224",
+            "GENERATED_SPLITS_ROOT": str(generated_splits_root),
+            "TRAINING_OUTPUTS_ROOT": str(training_outputs_root),
+            "RUN_SEEDS": [42],
+            "SELECT_FOLDS": ["fold1"],
+            "MODEL_WEIGHTS": None,
+            "BATCH_SIZE": 4,
+            "EPOCHS_HEAD": 1,
+            "EPOCHS_FINE": 0,
+            "FINE_TUNE_FRACTION": 0.0,
+            "USE_TRAINING_AUGMENTATION": True,
+        },
+        cwd=Path.cwd(),
+    )
+
+    output_root = training_outputs_root / "mobilenetv3small_8fold_processed_roi_cnn_only"
+    metrics_df = pd.read_csv(output_root / "processed_roi8_cnn_only_seed_metrics.csv")
+
+    assert metrics_df.loc[0, "input_mode"] == "raw_center_crop_224"
+    assert float(metrics_df.loc[0, "fine_tune_fraction"]) == 0.0
+    assert "severe_error_rate" in metrics_df.columns
+    assert "macro_f1" in metrics_df.columns
