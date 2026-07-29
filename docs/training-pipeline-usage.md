@@ -2,17 +2,27 @@
 
 ## Environment
 
-Use the conda environment:
+For real RTX 4050 training on native Windows, use the dedicated GPU conda environment:
+
+```bash
+conda env create -f environment.windows-gpu.yml
+conda activate meatlens-tf210-gpu
+```
+
+This environment intentionally pins:
+
+- `tensorflow==2.10.1`
+- `numpy<2`
+- `cudatoolkit=11.2`
+- `cudnn=8.1.0`
+
+Those pins keep native Windows TensorFlow GPU support working with the laptop `RTX 4050`.
+
+If you also want the lighter repo/dev environment for non-training tasks, keep using:
 
 ```bash
 conda env create -f environment.yml
 conda activate meatlens-pork-training
-```
-
-If the environment already exists and you need the notebook tooling:
-
-```bash
-conda install -n meatlens-pork-training -c conda-forge nbclient nbformat jupyterlab ipykernel
 ```
 
 ## Dataset Default
@@ -24,6 +34,8 @@ The notebook suite is built around the dataset already present in the repo:
 - target labels: `fresh`, `not fresh`, `spoiled`
 
 The stored `E:\...` paths inside `processing_summary.csv` are treated as old source references. The notebooks rebuild local paths from the local dataset structure instead of trusting those old absolute paths.
+
+`00_shared_setup.ipynb` now reports whether that default processed dataset is ready, how many sample folders it sees, and how many manifest rows are available before you move into auditing or training.
 
 Raw or Excel manifests are still supported in the early notebooks, but the current default workflow starts from the processed summary that is already in `data/`.
 
@@ -94,6 +106,18 @@ Default training contract:
 - metrics: `accuracy`, macro `precision`, macro `recall`, macro `F1`
 - confusion matrix: CSV and PNG
 
+Procedure controls now exposed through the shared setup and training notebooks:
+
+- `INPUT_MODE`
+  - `processed_hsv_lab_threshold_roi_224`
+  - `raw_center_crop_224`
+- `AUGMENTATION_PRESET`
+  - `conservative_v1`
+- `FINE_TUNE_FRACTION`
+  - `0.0`
+  - `0.25`
+  - `1.0`
+
 Key output root:
 
 ```text
@@ -106,9 +130,17 @@ Run `05_regenerate_metrics_and_reports.ipynb` after training finishes.
 
 This rebuilds aggregate reports from saved prediction CSVs without rerunning the whole training loop.
 
+In addition to the required core metrics, the report notebook now writes:
+
+- severe-error rate
+- worst-fold macro-F1
+- mean and standard deviation across runs
+
 ### 6. Train the final deployment model
 
 Run `06_train_final_deployment_model.ipynb` after the official 8-fold evaluation is done.
+
+This notebook now uses sample-aware validation instead of random image-level validation.
 
 Key output root:
 
@@ -151,3 +183,7 @@ Across the notebook suite, the main deliverables are:
 - deployment metadata JSON
 - ONNX model
 - ONNX smoke-test summary
+
+## Raw Center Crop Note
+
+`raw_center_crop_224` requires raw image sources in the audited manifest and preprocessing flow. If only the canonical processed ROI dataset is available locally, keep `INPUT_MODE=processed_hsv_lab_threshold_roi_224` until raw source images are provided.
