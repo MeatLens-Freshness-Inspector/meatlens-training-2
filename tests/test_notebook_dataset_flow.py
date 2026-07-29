@@ -110,3 +110,54 @@ def test_roi_preprocessing_generates_processed_dataset_from_raw_manifest(tmp_pat
     assert Image.open(output_image).size == (224, 224)
     assert preprocessing_summary_path.exists()
     assert preprocessing_failures_path.exists()
+
+
+def test_roi_preprocessing_can_generate_raw_center_crop_branch(tmp_path: Path) -> None:
+    raw_root = tmp_path / "raw_images"
+    raw_root.mkdir(parents=True, exist_ok=True)
+    source_image = raw_root / "raw_001.jpg"
+    Image.new("RGB", (480, 360), color=(190, 110, 110)).save(source_image)
+
+    audited_manifest_path = tmp_path / "generated_splits" / "audited_manifest.csv"
+    audited_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        [
+            {
+                "image_name": source_image.name,
+                "image_file_name": source_image.name,
+                "label": "fresh",
+                "sample_number": "1",
+                "sample_id": "sample_1",
+                "local_image_path": str(source_image),
+                "source_manifest_type": "raw_manifest",
+            }
+        ]
+    ).to_csv(audited_manifest_path, index=False)
+
+    raw_center_crop_root = tmp_path / "data" / "raw_center_crop_224"
+    processed_manifest_path = tmp_path / "generated_splits" / "processed_manifest.csv"
+    preprocessing_summary_path = raw_center_crop_root / "preprocessing_summary.csv"
+    preprocessing_failures_path = raw_center_crop_root / "preprocessing_failures.csv"
+
+    execute_notebook(
+        Path("02_roi_preprocessing.ipynb"),
+        overrides={
+            "NOTEBOOK_TEST_MODE": True,
+            "FORCE_REPROCESS": True,
+            "INPUT_MODE": "raw_center_crop_224",
+            "AUDITED_MANIFEST_PATH": str(audited_manifest_path),
+            "RAW_CENTER_CROP_ROOT": str(raw_center_crop_root),
+            "PROCESSED_MANIFEST_PATH": str(processed_manifest_path),
+            "PREPROCESSING_SUMMARY_PATH": str(preprocessing_summary_path),
+            "PREPROCESSING_FAILURES_PATH": str(preprocessing_failures_path),
+            "GENERATED_SPLITS_ROOT": str(tmp_path / "generated_splits"),
+        },
+        cwd=Path.cwd(),
+    )
+
+    processed_df = pd.read_csv(processed_manifest_path)
+    output_image = Path(processed_df.loc[0, "local_image_path"])
+
+    assert processed_df.loc[0, "input_mode"] == "raw_center_crop_224"
+    assert output_image.exists()
+    assert Image.open(output_image).size == (224, 224)
