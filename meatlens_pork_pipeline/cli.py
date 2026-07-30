@@ -25,6 +25,11 @@ def _add_common_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs-head", type=int, default=8)
     parser.add_argument("--epochs-fine", type=int, default=12)
+    parser.add_argument(
+        "--training-strategy",
+        default="cached_embeddings_sgd_v1",
+        choices=["cached_embeddings_sgd_v1", "cached_embeddings_v1", "end_to_end"],
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -50,6 +55,11 @@ def _build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--seed", type=int, required=True)
     train_parser.add_argument("--epochs-head", type=int, default=8)
     train_parser.add_argument("--epochs-fine", type=int, default=12)
+    train_parser.add_argument(
+        "--training-strategy",
+        default="cached_embeddings_sgd_v1",
+        choices=["cached_embeddings_sgd_v1", "cached_embeddings_v1", "end_to_end"],
+    )
 
     evaluate_parser = subparsers.add_parser("evaluate")
     evaluate_parser.add_argument("--model-h5", type=Path, required=True)
@@ -92,6 +102,7 @@ def _run_train(args: argparse.Namespace) -> int:
         seed=args.seed,
         epochs_head=args.epochs_head,
         epochs_fine=args.epochs_fine,
+        training_strategy=args.training_strategy,
     )
     return 0
 
@@ -127,6 +138,7 @@ def _write_metadata_if_available(
     train_count = getattr(training_artifacts, "train_count", None)
     val_count = getattr(training_artifacts, "val_count", None)
     test_count = getattr(evaluation_summary, "test_count", None)
+    training_strategy = getattr(training_artifacts, "training_strategy", None)
 
     if not isinstance(metrics, dict):
         return
@@ -142,6 +154,7 @@ def _write_metadata_if_available(
         test_count=test_count,
         class_weights=class_weights,
         metrics=metrics,
+        training_strategy=training_strategy if isinstance(training_strategy, str) else None,
     )
     write_metadata_json(
         metadata,
@@ -194,6 +207,7 @@ def _run_full_pipeline(args: argparse.Namespace) -> int:
         seed=args.seed,
         epochs_head=args.epochs_head,
         epochs_fine=args.epochs_fine,
+        training_strategy=args.training_strategy,
     )
     model_h5_path = Path(
         getattr(

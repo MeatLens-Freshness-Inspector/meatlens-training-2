@@ -20,7 +20,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import tensorflow as tf
-from PIL import Image
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -29,6 +28,8 @@ from sklearn.metrics import (
 )
 
 from .config import LABEL_ORDER
+from . import embeddings as _embedding_layers  # noqa: F401
+from .image_io import load_image_array
 
 
 @dataclass(frozen=True)
@@ -74,10 +75,7 @@ def _batched_image_arrays(test_df: pd.DataFrame, batch_size: int) -> tuple[list[
     frame_batches: list[pd.DataFrame] = []
     for start in range(0, len(test_df), batch_size):
         batch_df = test_df.iloc[start : start + batch_size].copy()
-        batch_arrays: list[np.ndarray] = []
-        for row in batch_df.to_dict(orient="records"):
-            image = Image.open(row["processed_image_path"]).convert("RGB")
-            batch_arrays.append(np.asarray(image, dtype=np.float32))
+        batch_arrays = [load_image_array(row) for row in batch_df.to_dict(orient="records")]
         image_batches.append(np.stack(batch_arrays, axis=0))
         frame_batches.append(batch_df)
     return image_batches, frame_batches

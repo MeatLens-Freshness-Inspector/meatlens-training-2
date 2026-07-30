@@ -22,6 +22,7 @@ def test_shared_setup_notebook_exposes_core_contract() -> None:
     assert "def inspect_default_processed_dataset(" in code_source
     assert "DEFAULT_PROCESSED_DATASET_SUMMARY = inspect_default_processed_dataset()" in code_source
     assert "DEFAULT_PROCESSED_DATASET_READY = bool(DEFAULT_PROCESSED_DATASET_SUMMARY['ready'])" in code_source
+    assert "tf.config.experimental.enable_op_determinism()" in code_source
     assert "def enforce_training_gpu(required_name_substring: str = REQUIRED_TRAINING_GPU_SUBSTRING) -> list[str]:" in code_source
 
 
@@ -35,8 +36,10 @@ def test_shared_setup_notebook_exposes_procedure_improvement_contract() -> None:
 
     assert "INPUT_MODE = str(override('INPUT_MODE', 'processed_hsv_lab_threshold_roi_224'))" in code_source
     assert "RAW_CENTER_CROP_ROOT = Path(str(override('RAW_CENTER_CROP_ROOT', DATA_ROOT / 'raw_center_crop_224')))" in code_source
-    assert "AUGMENTATION_PRESET = str(override('AUGMENTATION_PRESET', 'conservative_v1'))" in code_source
+    assert "AUGMENTATION_PRESET = str(override('AUGMENTATION_PRESET', 'geometry_only_v1'))" in code_source
     assert "SEVERE_ERROR_LABEL_PAIRS = [('fresh', 'spoiled'), ('spoiled', 'fresh')]" in code_source
+    assert "HEAD_LR = float(override('HEAD_LR', 1e-4))" in code_source
+    assert "TRAINING_STRATEGY = str(override('TRAINING_STRATEGY', 'cached_embeddings_sgd_v1'))" in code_source
     assert "def resolve_input_root(input_mode: str) -> Path:" in code_source
     assert "def resolve_fine_tune_fraction(value: object) -> float:" in code_source
     assert "def build_sample_heldout_validation_split(" in code_source

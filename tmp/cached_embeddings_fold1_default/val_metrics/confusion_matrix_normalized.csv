@@ -1,0 +1,4 @@
+,fresh,not fresh,spoiled
+fresh,0.525,0.13,0.345
+not fresh,0.99,0.0,0.01
+spoiled,0.53,0.07,0.4

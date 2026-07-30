@@ -6,13 +6,25 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import accuracy_score, log_loss
 import tensorflow as tf
-from PIL import Image
 from sklearn.utils.class_weight import compute_class_weight as sklearn_compute_class_weight
 from tensorflow.keras import callbacks, layers
 from tensorflow.keras.applications import MobileNetV3Small
 
 from .config import INPUT_SIZE, LABEL_ORDER
+from .embeddings import (
+    assemble_image_classifier_model,
+    build_embedding_classifier_model,
+    build_feature_extractor_model,
+    build_linear_ovr_image_classifier_model,
+    cache_dataframe_embeddings,
+    fit_linear_ovr_classifier,
+    load_cached_embeddings,
+    predict_linear_ovr_probabilities,
+)
+from .image_io import load_image_array
+from .modeling import build_classification_head, build_classification_loss
 
 
 @dataclass(frozen=True)
@@ -23,6 +35,8 @@ class TrainingArtifacts:
     train_count: int
     val_count: int
     class_weights: dict[int, float]
+    training_strategy: str
+    embedding_cache_dir: Path | None = None
 
 
 class CsvImageSequence(tf.keras.utils.Sequence):
@@ -49,10 +63,7 @@ class CsvImageSequence(tf.keras.utils.Sequence):
         images: list[np.ndarray] = []
         labels: list[int] = []
         for row in batch_df.to_dict(orient="records"):
-            image = Image.open(row["processed_image_path"]).convert("RGB")
-            if image.size != INPUT_SIZE:
-                image = image.resize(INPUT_SIZE, Image.BILINEAR)
-            images.append(np.asarray(image, dtype=np.float32))
+            images.append(load_image_array(row, target_size=INPUT_SIZE))
             labels.append(LABEL_ORDER.index(str(row["label"])))
 
         return (
@@ -69,6 +80,9 @@ def build_mobilenetv3small_model(
     input_shape: tuple[int, int, int] = (224, 224, 3),
     num_classes: int = 3,
     weights: str | None = "imagenet",
+    learning_rate: float = 1e-4,
+    label_smoothing: float = 0.0,
+    head_variant: str = "linear_v1",
 ) -> tf.keras.Model:
     backbone = MobileNetV3Small(
         include_top=False,
@@ -82,12 +96,11 @@ def build_mobilenetv3small_model(
     x = layers.Rescaling(scale=1.0 / 127.5, offset=-1.0, name="mobilenetv3_rescale")(inputs)
     x = backbone(x, training=False)
     x = layers.GlobalAveragePooling2D(name="avg_pool")(x)
-    x = layers.Dropout(0.2, name="dropout")(x)
-    outputs = layers.Dense(num_classes, activation="softmax", name="predictions")(x)
+    outputs = build_classification_head(x, num_classes=num_classes, head_variant=head_variant)
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name="meatlens_mobilenetv3small_cnn_only")
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-        loss="categorical_crossentropy",
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        loss=build_classification_loss(label_smoothing=label_smoothing),
         metrics=["accuracy"],
     )
     return model
@@ -167,6 +180,27 @@ def _history_to_frame(
     return pd.DataFrame(rows)
 
 
+def _linear_history_frame(
+    train_labels: np.ndarray,
+    train_probabilities: np.ndarray,
+    val_labels: np.ndarray,
+    val_probabilities: np.ndarray,
+    phase_name: str,
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "phase": phase_name,
+                "epoch": 1,
+                "accuracy": float(accuracy_score(train_labels, train_probabilities.argmax(axis=1))),
+                "loss": float(log_loss(train_labels, train_probabilities, labels=np.arange(len(LABEL_ORDER)))),
+                "val_accuracy": float(accuracy_score(val_labels, val_probabilities.argmax(axis=1))),
+                "val_loss": float(log_loss(val_labels, val_probabilities, labels=np.arange(len(LABEL_ORDER)))),
+            }
+        ]
+    )
+
+
 def train_model(
     train_csv: Path,
     val_csv: Path,
@@ -174,6 +208,12 @@ def train_model(
     seed: int,
     epochs_head: int = 8,
     epochs_fine: int = 12,
+    head_lr: float = 1e-4,
+    fine_tune_lr: float = 1e-5,
+    label_smoothing: float = 0.0,
+    head_variant: str = "linear_v1",
+    training_strategy: str = "cached_embeddings_sgd_v1",
+    weights: str | None = "imagenet",
 ) -> TrainingArtifacts:
     _set_training_seed(seed)
 
@@ -185,11 +225,144 @@ def train_model(
     model_h5_path = output_dir / "meatlens_mobilenetv3small_pork_cnn_only.keras"
     history_csv_path = output_dir / "training_history.csv"
 
+    class_weights = compute_class_weights(train_df["label"])
+    if training_strategy == "cached_embeddings_sgd_v1":
+        embedding_cache_dir = output_dir / "embedding_cache"
+        feature_extractor = build_feature_extractor_model(weights=weights)
+        train_cache_path = embedding_cache_dir / "train_embeddings.npz"
+        val_cache_path = embedding_cache_dir / "val_embeddings.npz"
+
+        if not train_cache_path.exists():
+            cache_dataframe_embeddings(
+                df=train_df,
+                feature_extractor=feature_extractor,
+                output_path=train_cache_path,
+                batch_size=32,
+            )
+        if not val_cache_path.exists():
+            cache_dataframe_embeddings(
+                df=val_df,
+                feature_extractor=feature_extractor,
+                output_path=val_cache_path,
+                batch_size=32,
+            )
+
+        train_features, train_labels = load_cached_embeddings(train_cache_path)
+        val_features, val_labels = load_cached_embeddings(val_cache_path)
+
+        scaler, classifier = fit_linear_ovr_classifier(
+            train_features=train_features,
+            train_labels=train_labels,
+            seed=seed,
+        )
+        train_probabilities = predict_linear_ovr_probabilities(train_features, scaler, classifier)
+        val_probabilities = predict_linear_ovr_probabilities(val_features, scaler, classifier)
+
+        history_df = _linear_history_frame(
+            train_labels=train_labels,
+            train_probabilities=train_probabilities,
+            val_labels=val_labels,
+            val_probabilities=val_probabilities,
+            phase_name="cached_embeddings_sgd",
+        )
+        history_df.to_csv(history_csv_path, index=False)
+
+        best_model = build_linear_ovr_image_classifier_model(feature_extractor, scaler, classifier)
+        best_model.save(checkpoint_path, include_optimizer=False)
+        best_model.save(model_h5_path, include_optimizer=False)
+
+        return TrainingArtifacts(
+            model_h5_path=model_h5_path,
+            checkpoint_path=checkpoint_path,
+            history_csv_path=history_csv_path,
+            train_count=len(train_df),
+            val_count=len(val_df),
+            class_weights=class_weights,
+            training_strategy=training_strategy,
+            embedding_cache_dir=embedding_cache_dir,
+        )
+
+    if training_strategy == "cached_embeddings_v1":
+        embedding_cache_dir = output_dir / "embedding_cache"
+        head_checkpoint_path = output_dir / "meatlens_mobilenetv3small_pork_cnn_only_head_best.keras"
+        feature_extractor = build_feature_extractor_model(weights=weights)
+        train_cache_path = embedding_cache_dir / "train_embeddings.npz"
+        val_cache_path = embedding_cache_dir / "val_embeddings.npz"
+
+        if not train_cache_path.exists():
+            cache_dataframe_embeddings(
+                df=train_df,
+                feature_extractor=feature_extractor,
+                output_path=train_cache_path,
+                batch_size=32,
+            )
+        if not val_cache_path.exists():
+            cache_dataframe_embeddings(
+                df=val_df,
+                feature_extractor=feature_extractor,
+                output_path=val_cache_path,
+                batch_size=32,
+            )
+
+        train_features, train_labels = load_cached_embeddings(train_cache_path)
+        val_features, val_labels = load_cached_embeddings(val_cache_path)
+
+        classifier_model = build_embedding_classifier_model(
+            feature_dim=int(train_features.shape[1]),
+            num_classes=len(LABEL_ORDER),
+            learning_rate=head_lr,
+            label_smoothing=label_smoothing,
+            head_variant=head_variant,
+        )
+        fit_callbacks = _build_callbacks(head_checkpoint_path)
+        target_epochs = max(epochs_head + epochs_fine, 1)
+        history = classifier_model.fit(
+            train_features,
+            tf.keras.utils.to_categorical(train_labels, num_classes=len(LABEL_ORDER)),
+            validation_data=(
+                val_features,
+                tf.keras.utils.to_categorical(val_labels, num_classes=len(LABEL_ORDER)),
+            ),
+            epochs=target_epochs,
+            class_weight=class_weights,
+            callbacks=fit_callbacks,
+            verbose=2,
+        )
+
+        history_df = _history_to_frame([("cached_embeddings", history)])
+        history_df.to_csv(history_csv_path, index=False)
+
+        best_classifier = tf.keras.models.load_model(head_checkpoint_path, compile=False)
+        best_model = assemble_image_classifier_model(feature_extractor, best_classifier)
+        best_model.save(checkpoint_path, include_optimizer=False)
+        best_model.save(model_h5_path, include_optimizer=False)
+
+        return TrainingArtifacts(
+            model_h5_path=model_h5_path,
+            checkpoint_path=checkpoint_path,
+            history_csv_path=history_csv_path,
+            train_count=len(train_df),
+            val_count=len(val_df),
+            class_weights=class_weights,
+            training_strategy=training_strategy,
+            embedding_cache_dir=embedding_cache_dir,
+        )
+
+    if training_strategy != "end_to_end":
+        raise ValueError(
+            f"Unsupported training_strategy {training_strategy!r}. "
+            "Expected one of ['cached_embeddings_sgd_v1', 'cached_embeddings_v1', 'end_to_end']."
+        )
+
     train_sequence = CsvImageSequence(train_df, batch_size=32, shuffle=True)
     val_sequence = CsvImageSequence(val_df, batch_size=32, shuffle=False)
-    class_weights = compute_class_weights(train_df["label"])
 
-    model = build_mobilenetv3small_model(weights="imagenet")
+    model = build_mobilenetv3small_model(
+        weights=weights,
+        learning_rate=head_lr,
+        label_smoothing=label_smoothing,
+        head_variant=head_variant,
+    )
     fit_callbacks = _build_callbacks(checkpoint_path)
     phase_histories: list[tuple[str, tf.keras.callbacks.History]] = []
 
@@ -212,8 +385,8 @@ def train_model(
             layer.trainable = False
 
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
-            loss="categorical_crossentropy",
+            optimizer=tf.keras.optimizers.Adam(learning_rate=fine_tune_lr),
+            loss=build_classification_loss(label_smoothing=label_smoothing),
             metrics=["accuracy"],
         )
 
@@ -241,4 +414,5 @@ def train_model(
         train_count=len(train_df),
         val_count=len(val_df),
         class_weights=class_weights,
+        training_strategy=training_strategy,
     )

@@ -112,11 +112,24 @@ Procedure controls now exposed through the shared setup and training notebooks:
   - `processed_hsv_lab_threshold_roi_224`
   - `raw_center_crop_224`
 - `AUGMENTATION_PRESET`
+  - `geometry_only_v1`
   - `conservative_v1`
+- `TRAINING_STRATEGY`
+  - default `cached_embeddings_sgd_v1`
+  - `cached_embeddings_v1`
+  - `end_to_end`
+- `HEAD_LR`
+  - default `1e-4`
 - `FINE_TUNE_FRACTION`
   - `0.0`
   - `0.25`
   - `1.0`
+
+Important behavior change:
+
+- `04_train_8fold_mobilenetv3small.ipynb` now defaults to `TRAINING_STRATEGY='cached_embeddings_sgd_v1'`
+- this means the fold-training notebook now uses frozen MobileNetV3 feature extraction plus a cached-embedding SGD classifier by default
+- if you want to reproduce the older unstable image-level fine-tuning path, explicitly override `TRAINING_STRATEGY='end_to_end'`
 
 Key output root:
 
@@ -129,6 +142,8 @@ training_outputs/mobilenetv3small_8fold_processed_roi_cnn_only/
 Run `05_regenerate_metrics_and_reports.ipynb` after training finishes.
 
 This rebuilds aggregate reports from saved prediction CSVs without rerunning the whole training loop.
+
+Because fold 4 now writes the same prediction CSV and confusion-matrix artifacts through the cached-embedding path, `05_regenerate_metrics_and_reports.ipynb` does not need any workflow change.
 
 In addition to the required core metrics, the report notebook now writes:
 

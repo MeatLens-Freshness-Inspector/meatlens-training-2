@@ -10,6 +10,7 @@ import onnxruntime as ort
 import tensorflow as tf
 import tf2onnx
 
+from . import embeddings as _embedding_layers  # noqa: F401
 from .config import IMAGE_CROP_MODE, INPUT_SIZE, LABEL_ORDER, MODEL_INPUT_MODE
 
 
@@ -20,8 +21,9 @@ def build_onnx_metadata(
     test_count: int,
     class_weights: dict[int, float],
     metrics: dict[str, float],
+    training_strategy: str | None = None,
 ) -> dict[str, object]:
-    return {
+    metadata = {
         "model_name": "meatlens_mobilenetv3small_pork_cnn_only",
         "backbone": "MobileNetV3Small",
         "model_input_mode": MODEL_INPUT_MODE,
@@ -44,6 +46,9 @@ def build_onnx_metadata(
         "test_macro_f1": float(metrics["macro_f1"]),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     }
+    if training_strategy is not None:
+        metadata["training_strategy"] = training_strategy
+    return metadata
 
 
 def export_model_to_onnx(model_h5_path: Path, onnx_path: Path, opset: int = 13) -> Path:
