@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from PIL import Image
 
-from meatlens_pork_pipeline.embeddings import cache_dataframe_embeddings
+from meatlens_pork_pipeline.embeddings import build_linear_ovr_classifier_model, cache_dataframe_embeddings
 from meatlens_pork_pipeline.evaluation import evaluate_model
 from meatlens_pork_pipeline.image_io import resolve_image_path
 from meatlens_pork_pipeline.training import train_model
@@ -119,3 +119,23 @@ def test_train_model_cached_embeddings_saves_image_classifier(tmp_path: Path, mo
     assert evaluation.metrics["accuracy"] >= 0.99
     assert evaluation.confusion_matrix_csv_path.exists()
     assert evaluation.confusion_matrix_png_path.exists()
+
+
+def test_linear_ovr_keras_model_avoids_zero_probability_rows_for_extreme_negative_logits() -> None:
+    model = build_linear_ovr_classifier_model(
+        feature_dim=2,
+        num_classes=3,
+        scaler_mean=np.zeros(2, dtype=np.float32),
+        scaler_scale=np.ones(2, dtype=np.float32),
+        coefficients=np.zeros((3, 2), dtype=np.float32),
+        intercept=np.array([-200.0, -200.0, -200.0], dtype=np.float32),
+    )
+
+    probabilities = model.predict(np.zeros((2, 2), dtype=np.float32), verbose=0)
+
+    np.testing.assert_allclose(probabilities.sum(axis=1), np.ones(2, dtype=np.float32), atol=1e-6)
+    np.testing.assert_allclose(
+        probabilities,
+        np.full((2, 3), 1.0 / 3.0, dtype=np.float32),
+        atol=1e-6,
+    )

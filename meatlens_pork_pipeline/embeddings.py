@@ -45,7 +45,26 @@ class StandardizeFeatures(layers.Layer):
 class NormalizeProbabilities(layers.Layer):
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         row_sums = tf.reduce_sum(inputs, axis=-1, keepdims=True)
-        return tf.math.divide_no_nan(inputs, row_sums)
+        class_count = tf.cast(tf.shape(inputs)[-1], dtype=inputs.dtype)
+        uniform = tf.ones_like(inputs) / class_count
+        normalized = tf.math.divide_no_nan(inputs, row_sums)
+        return tf.where(row_sums > 0.0, normalized, uniform)
+
+
+@tf.keras.utils.register_keras_serializable(package="meatlens")
+class StableSigmoid(layers.Layer):
+    def __init__(self, clip_value: float = 60.0, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.clip_value = float(clip_value)
+
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        clipped = tf.clip_by_value(inputs, clip_value_min=-self.clip_value, clip_value_max=self.clip_value)
+        return tf.math.sigmoid(clipped)
+
+    def get_config(self) -> dict[str, object]:
+        config = super().get_config()
+        config.update({"clip_value": self.clip_value})
+        return config
 
 
 def build_feature_extractor_model(
@@ -190,7 +209,7 @@ def build_linear_ovr_classifier_model(
     standardized = StandardizeFeatures(mean=scaler_mean, scale=scaler_scale, name="feature_standardization")(inputs)
     logits_layer = layers.Dense(num_classes, activation=None, name="ovr_logits")
     logits = logits_layer(standardized)
-    sigmoid_scores = layers.Activation("sigmoid", name="ovr_sigmoid")(logits)
+    sigmoid_scores = StableSigmoid(name="ovr_sigmoid")(logits)
     outputs = NormalizeProbabilities(name="predictions")(sigmoid_scores)
 
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name="meatlens_embedding_classifier_sgd")
