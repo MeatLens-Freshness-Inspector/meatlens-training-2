@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 def test_manifest_audit_rebuilds_local_paths_from_processing_summary(tmp_path: Path) -> None:

@@ -43,3 +43,29 @@ def test_shared_setup_notebook_exposes_procedure_improvement_contract() -> None:
     assert "def resolve_input_root(input_mode: str) -> Path:" in code_source
     assert "def resolve_fine_tune_fraction(value: object) -> float:" in code_source
     assert "def build_sample_heldout_validation_split(" in code_source
+
+
+def test_test_suite_architecture_combines_module_and_feature_grouping() -> None:
+    expected_directories = [
+        Path("tests/support"),
+        Path("tests/unit/augmentation"),
+        Path("tests/unit/cli"),
+        Path("tests/unit/config"),
+        Path("tests/unit/evaluation"),
+        Path("tests/unit/image_ops"),
+        Path("tests/unit/manifest"),
+        Path("tests/unit/modeling"),
+        Path("tests/unit/onnx_export"),
+        Path("tests/unit/splits"),
+        Path("tests/unit/training"),
+        Path("tests/unit/windows_tf_bootstrap"),
+        Path("tests/integration/data_pipeline"),
+        Path("tests/integration/training_pipeline"),
+        Path("tests/integration/export_pipeline"),
+        Path("tests/integration/runtime"),
+    ]
+
+    for directory in expected_directories:
+        assert directory.is_dir(), f"Expected test directory {directory} to exist"
+
+    assert (Path("tests/support/notebook_test_utils.py")).exists()

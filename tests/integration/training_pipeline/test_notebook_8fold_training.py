@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 def test_train_8fold_mobilenetv3small_writes_fold_artifacts(tmp_path: Path) -> None:

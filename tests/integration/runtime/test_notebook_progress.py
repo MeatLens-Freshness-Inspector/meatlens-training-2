@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 NOTEBOOK_PATHS = [

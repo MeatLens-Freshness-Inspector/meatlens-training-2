@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 def test_regenerate_metrics_and_reports_writes_summary_outputs(tmp_path: Path) -> None:

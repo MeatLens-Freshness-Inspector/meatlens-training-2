@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 def test_build_cross_rotation_splits_creates_official_fold_files(tmp_path: Path) -> None:

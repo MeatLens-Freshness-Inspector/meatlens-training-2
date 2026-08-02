@@ -5,7 +5,7 @@ from pathlib import Path
 
 import tensorflow as tf
 
-from tests.notebook_test_utils import execute_notebook
+from tests.support.notebook_test_utils import execute_notebook
 
 
 def test_export_and_smoke_test_onnx_workflow(tmp_path: Path) -> None:
