@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Iterable, Iterator, TypeVar
+from typing import Callable, Iterable, Iterator, TypeVar
 
 try:
     from tqdm.auto import tqdm as _auto_tqdm
@@ -13,12 +13,22 @@ T = TypeVar("T")
 
 
 class _PlainProgressBar:
-    def __init__(self, total: int | None, description: str, unit: str = "step") -> None:
+    def __init__(
+        self,
+        total: int | None,
+        description: str,
+        unit: str = "step",
+        emit_interval_seconds: float = 5.0,
+        clock: Callable[[], float] = perf_counter,
+    ) -> None:
         self.total = total
         self.description = description
         self.unit = unit
         self.n = 0
-        self._started_at = perf_counter()
+        self._clock = clock
+        self._emit_interval_seconds = max(float(emit_interval_seconds), 0.0)
+        self._started_at = self._clock()
+        self._last_emitted_at = self._started_at
         self._last_emitted = -1
         self._emit("START")
 
@@ -30,10 +40,12 @@ class _PlainProgressBar:
         if self.n >= self.total:
             return True
         checkpoint = max(1, self.total // 10)
-        return self.n // checkpoint > self._last_emitted // checkpoint
+        checkpoint_reached = self.n // checkpoint > self._last_emitted // checkpoint
+        heartbeat_due = self._clock() - self._last_emitted_at >= self._emit_interval_seconds
+        return checkpoint_reached or heartbeat_due
 
     def _emit(self, state: str) -> None:
-        elapsed = perf_counter() - self._started_at
+        elapsed = self._clock() - self._started_at
         if self.total:
             print(
                 f"[{state}] {self.description} [{self.n}/{self.total} {self.unit}] "
@@ -42,6 +54,7 @@ class _PlainProgressBar:
         else:
             print(f"[{state}] {self.description} [{self.n} {self.unit}] elapsed={elapsed:.1f}s")
         self._last_emitted = self.n
+        self._last_emitted_at = self._clock()
 
     def update(self, increment: int = 1) -> None:
         self.n += increment

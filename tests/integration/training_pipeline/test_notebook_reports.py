@@ -1,10 +1,24 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
 
 from tests.support.notebook_test_utils import execute_notebook
+
+
+def test_report_notebook_exposes_progress_phase_markers() -> None:
+    notebook = json.loads(Path("05_regenerate_metrics_and_reports.ipynb").read_text(encoding="utf-8"))
+    code_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook["cells"]
+        if cell.get("cell_type") == "code"
+    )
+
+    assert "[REPORT] Loading prediction CSVs" in code_source
+    assert "[REPORT] Summarizing folds" in code_source
+    assert "[REPORT] Writing report artifacts" in code_source
 
 
 def test_regenerate_metrics_and_reports_writes_summary_outputs(tmp_path: Path) -> None:

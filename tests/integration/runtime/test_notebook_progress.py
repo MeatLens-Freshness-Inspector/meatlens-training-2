@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from meatlens_pork_pipeline import notebook_progress
 from tests.support.notebook_test_utils import execute_notebook
 
 
@@ -36,6 +37,29 @@ def test_shared_setup_exposes_notebook_progress_helpers() -> None:
     namespace["finish_notebook_cell_progress"](progress, "done")
 
     assert list(namespace["iter_notebook_progress"]([1, 2], "items", total=2)) == [1, 2]
+
+
+def test_plain_progress_emits_time_heartbeat_without_checkpoint(capsys) -> None:
+    current_time = [0.0]
+    progress = notebook_progress._PlainProgressBar(
+        total=100,
+        description="images",
+        unit="image",
+        emit_interval_seconds=5.0,
+        clock=lambda: current_time[0],
+    )
+    capsys.readouterr()
+
+    progress.update()
+    assert capsys.readouterr().out == ""
+
+    current_time[0] = 5.0
+    progress.update()
+    output = capsys.readouterr().out
+    assert "[RUNNING] images [2/100 image]" in output
+
+    progress.update()
+    assert capsys.readouterr().out == ""
 
 
 def test_every_notebook_code_cell_starts_cell_progress() -> None:

@@ -56,4 +56,4 @@ def test_shared_setup_bootstraps_windows_tensorflow_dlls_before_import() -> None
 
     assert "from meatlens_pork_pipeline.windows_tf_bootstrap import bootstrap_windows_tensorflow_dll_paths" in code_source
     assert "os.environ['PATH'] = bootstrap_windows_tensorflow_dll_paths(" in code_source
-    assert code_source.index("bootstrap_windows_tensorflow_dll_paths") < code_source.index("import tensorflow as tf")
+    assert code_source.index("bootstrap_windows_tensorflow_dll_paths") < code_source.index("import tensorflow as tensorflow_module")
