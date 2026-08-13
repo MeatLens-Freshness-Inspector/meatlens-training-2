@@ -57,31 +57,24 @@ def test_build_cross_rotation_splits_creates_official_fold_files(tmp_path: Path)
     assert (generated_splits_root / "all_sampled_images.csv").exists()
 
 
-def test_build_cross_rotation_splits_preserves_roboflow_native_splits(tmp_path: Path) -> None:
+def test_build_cross_rotation_splits_generates_eight_roboflow_folds(tmp_path: Path) -> None:
     generated_splits_root = tmp_path / "generated_splits"
     processed_manifest_path = generated_splits_root / "processed_manifest.csv"
     generated_splits_root.mkdir(parents=True)
 
-    rows = [
-        {
-            "image_file_name": "train.jpg",
-            "label": "fresh",
-            "local_image_path": str(tmp_path / "train.jpg"),
-            "roboflow_split": "train",
-        },
-        {
-            "image_file_name": "valid.jpg",
-            "label": "not fresh",
-            "local_image_path": str(tmp_path / "valid.jpg"),
-            "roboflow_split": "valid",
-        },
-        {
-            "image_file_name": "test.jpg",
-            "label": "spoiled",
-            "local_image_path": str(tmp_path / "test.jpg"),
-            "roboflow_split": "test",
-        },
-    ]
+    rows = []
+    labels = ("fresh", "not fresh", "spoiled")
+    native_splits = ("train", "valid", "test")
+    for index in range(24):
+        filename = f"image_{index}.jpg"
+        rows.append(
+            {
+                "image_file_name": filename,
+                "label": labels[index % len(labels)],
+                "local_image_path": str(tmp_path / filename),
+                "roboflow_split": native_splits[index % len(native_splits)],
+            }
+        )
     pd.DataFrame(rows).to_csv(processed_manifest_path, index=False)
 
     execute_notebook(
@@ -95,11 +88,16 @@ def test_build_cross_rotation_splits_preserves_roboflow_native_splits(tmp_path: 
         cwd=Path.cwd(),
     )
 
-    fold1_train = pd.read_csv(generated_splits_root / "fold1_train.csv")
-    fold1_val = pd.read_csv(generated_splits_root / "fold1_val.csv")
-    fold1_test = pd.read_csv(generated_splits_root / "fold1_test.csv")
+    summary_df = pd.read_csv(generated_splits_root / "cross_rotation_summary.csv")
+    assert summary_df["fold"].tolist() == [f"fold{i}" for i in range(1, 9)]
 
-    assert fold1_train["image_file_name"].tolist() == ["train.jpg"]
-    assert fold1_val["image_file_name"].tolist() == ["valid.jpg"]
-    assert fold1_test["image_file_name"].tolist() == ["test.jpg"]
-    assert set(fold1_train["split_type"]) == {"roboflow_native"}
+    for fold_index in range(1, 9):
+        split_frames = [
+            pd.read_csv(generated_splits_root / f"fold{fold_index}_{split}.csv")
+            for split in ("train", "val", "test")
+        ]
+        image_sets = [set(frame["image_file_name"]) for frame in split_frames]
+        assert not (image_sets[0] & image_sets[1])
+        assert not (image_sets[0] & image_sets[2])
+        assert not (image_sets[1] & image_sets[2])
+        assert all(set(frame["split_type"]) == {"roboflow_stratified_8fold"} for frame in split_frames)

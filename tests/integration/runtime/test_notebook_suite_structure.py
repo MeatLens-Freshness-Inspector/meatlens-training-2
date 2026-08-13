@@ -92,9 +92,10 @@ def test_notebook_suite_exposes_dataset_source_selection() -> None:
     assert "DATASET_SOURCE = str(override('DATASET_SOURCE', 'roboflow'))" in setup_source
     assert "ROBOFLOW_DATASET_ROOT" in setup_source
     assert "build_roboflow_manifest" in audit_source
-    assert "def build_native_roboflow_splits(" in split_source
-    assert "default_select_folds = ['fold1'] if DATASET_SOURCE == 'roboflow'" in training_source
+    assert "def build_roboflow_stratified_8fold_splits(" in split_source
+    assert "default_select_folds = [f'fold{i}' for i in range(1, 9)]" in training_source
     assert "if DATASET_SOURCE == 'roboflow':" in final_source
+    assert "fold1_train.csv" in final_source
 
 
 def test_test_suite_architecture_combines_module_and_feature_grouping() -> None:
