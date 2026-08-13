@@ -13,8 +13,9 @@ def execute_notebook(
     cwd: Path | None = None,
 ):
     notebook = nbformat.read(notebook_path, as_version=4)
+    test_overrides = {"DATASET_SOURCE": "current", **(overrides or {})}
     injected = nbformat.v4.new_code_cell(
-        "NOTEBOOK_OVERRIDES = " + pformat(overrides or {}, sort_dicts=True)
+        "NOTEBOOK_OVERRIDES = " + pformat(test_overrides, sort_dicts=True)
     )
     notebook.cells.insert(0, injected)
     execution_cwd = (cwd or notebook_path.parent).resolve()

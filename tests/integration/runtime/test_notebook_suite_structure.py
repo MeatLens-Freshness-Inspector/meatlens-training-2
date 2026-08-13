@@ -89,7 +89,7 @@ def test_notebook_suite_exposes_dataset_source_selection() -> None:
         if cell.get("cell_type") == "code"
     )
 
-    assert "DATASET_SOURCE = str(override('DATASET_SOURCE', 'current'))" in setup_source
+    assert "DATASET_SOURCE = str(override('DATASET_SOURCE', 'roboflow'))" in setup_source
     assert "ROBOFLOW_DATASET_ROOT" in setup_source
     assert "build_roboflow_manifest" in audit_source
     assert "def build_native_roboflow_splits(" in split_source
