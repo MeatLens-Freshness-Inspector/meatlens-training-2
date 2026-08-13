@@ -161,3 +161,60 @@ def test_roi_preprocessing_can_generate_raw_center_crop_branch(tmp_path: Path) -
     assert processed_df.loc[0, "input_mode"] == "raw_center_crop_224"
     assert output_image.exists()
     assert Image.open(output_image).size == (224, 224)
+
+
+def test_roboflow_source_flows_through_audit_and_preprocessing(tmp_path: Path) -> None:
+    roboflow_root = tmp_path / "roboflow dataset"
+    for split, label_column in (("train", "FRESH"), ("valid", "HALF-FRESH"), ("test", "SPOILED")):
+        split_root = roboflow_root / split
+        split_root.mkdir(parents=True)
+        filename = f"{split}.jpg"
+        Image.new("RGB", (480, 360), color=(190, 110, 110)).save(split_root / filename)
+        pd.DataFrame(
+            [{
+                "filename": filename,
+                "FRESH": int(label_column == "FRESH"),
+                "HALF-FRESH": int(label_column == "HALF-FRESH"),
+                "SPOILED": int(label_column == "SPOILED"),
+            }]
+        ).to_csv(split_root / "_classes.csv", index=False)
+
+    generated_splits_root = tmp_path / "generated_splits"
+    audited_manifest_path = generated_splits_root / "audited_manifest.csv"
+    execute_notebook(
+        Path("01_manifest_and_dataset_audit.ipynb"),
+        overrides={
+            "NOTEBOOK_TEST_MODE": True,
+            "DATASET_SOURCE": "roboflow",
+            "ROBOFLOW_DATASET_ROOT": str(roboflow_root),
+            "GENERATED_SPLITS_ROOT": str(generated_splits_root),
+            "AUDITED_MANIFEST_PATH": str(audited_manifest_path),
+        },
+        cwd=Path.cwd(),
+    )
+
+    audited_df = pd.read_csv(audited_manifest_path)
+    assert audited_df["label"].tolist() == ["fresh", "not fresh", "spoiled"]
+    assert audited_df["roboflow_split"].tolist() == ["train", "valid", "test"]
+
+    processed_root = tmp_path / "roboflow_processed"
+    processed_manifest_path = generated_splits_root / "processed_manifest.csv"
+    execute_notebook(
+        Path("02_roi_preprocessing.ipynb"),
+        overrides={
+            "NOTEBOOK_TEST_MODE": True,
+            "DATASET_SOURCE": "roboflow",
+            "ROBOFLOW_PROCESSED_ROOT": str(processed_root),
+            "AUDITED_MANIFEST_PATH": str(audited_manifest_path),
+            "PROCESSED_MANIFEST_PATH": str(processed_manifest_path),
+            "PREPROCESSING_SUMMARY_PATH": str(processed_root / "preprocessing_summary.csv"),
+            "PREPROCESSING_FAILURES_PATH": str(processed_root / "preprocessing_failures.csv"),
+            "GENERATED_SPLITS_ROOT": str(generated_splits_root),
+            "FORCE_REPROCESS": True,
+        },
+        cwd=Path.cwd(),
+    )
+
+    processed_df = pd.read_csv(processed_manifest_path)
+    assert processed_df["roboflow_split"].tolist() == ["train", "valid", "test"]
+    assert processed_df["local_image_path"].map(Path).map(Path.exists).all()

@@ -60,6 +60,43 @@ def test_shared_setup_notebook_exposes_procedure_improvement_contract() -> None:
     assert "def build_sample_heldout_validation_split(" in code_source
 
 
+def test_notebook_suite_exposes_dataset_source_selection() -> None:
+    setup = json.loads(Path("00_shared_setup.ipynb").read_text(encoding="utf-8"))
+    setup_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in setup["cells"]
+        if cell.get("cell_type") == "code"
+    )
+    audit = json.loads(Path("01_manifest_and_dataset_audit.ipynb").read_text(encoding="utf-8"))
+    audit_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in audit["cells"]
+        if cell.get("cell_type") == "code"
+    )
+    split_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in json.loads(Path("03_build_cross_rotation_splits.ipynb").read_text(encoding="utf-8"))["cells"]
+        if cell.get("cell_type") == "code"
+    )
+    training_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in json.loads(Path("04_train_8fold_mobilenetv3small.ipynb").read_text(encoding="utf-8"))["cells"]
+        if cell.get("cell_type") == "code"
+    )
+    final_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in json.loads(Path("06_train_final_deployment_model.ipynb").read_text(encoding="utf-8"))["cells"]
+        if cell.get("cell_type") == "code"
+    )
+
+    assert "DATASET_SOURCE = str(override('DATASET_SOURCE', 'current'))" in setup_source
+    assert "ROBOFLOW_DATASET_ROOT" in setup_source
+    assert "build_roboflow_manifest" in audit_source
+    assert "def build_native_roboflow_splits(" in split_source
+    assert "default_select_folds = ['fold1'] if DATASET_SOURCE == 'roboflow'" in training_source
+    assert "if DATASET_SOURCE == 'roboflow':" in final_source
+
+
 def test_test_suite_architecture_combines_module_and_feature_grouping() -> None:
     expected_directories = [
         Path("tests/support"),
