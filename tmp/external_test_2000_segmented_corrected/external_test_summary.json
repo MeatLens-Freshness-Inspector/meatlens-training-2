@@ -1,0 +1,20 @@
+{
+  "accuracy": 0.456,
+  "macro_precision": 0.4447539074045099,
+  "macro_recall": 0.4677950955905552,
+  "macro_f1": 0.37408182662484374,
+  "test_count": 2000,
+  "label_order": [
+    "fresh",
+    "not fresh",
+    "spoiled"
+  ],
+  "dataset_role": "external_test_only",
+  "training_dataset": "roboflow",
+  "test_dataset": "current_manually_captured",
+  "test_input_mode": "processed_hsv_lab_threshold_roi_224",
+  "model_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\meatlens-training-2\\training_outputs\\roboflow\\mobilenetv3small_8samples_final_deployment_cnn_only\\models\\meatlens_final_8samples_cnn_only_mobilenetv3small.onnx",
+  "prediction_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\meatlens-training-2\\tmp\\external_test_2000_segmented_corrected\\external_test_predictions.csv",
+  "confusion_matrix_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\meatlens-training-2\\tmp\\external_test_2000_segmented_corrected\\external_test_confusion_matrix.csv",
+  "metrics_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\meatlens-training-2\\tmp\\external_test_2000_segmented_corrected\\external_test_metrics.json"
+}
