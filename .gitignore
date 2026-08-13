@@ -5,3 +5,4 @@ __pycache__/
 generated_splits/
 training_outputs/
 data/
+\.worktrees/
