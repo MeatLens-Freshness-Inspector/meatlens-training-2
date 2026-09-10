@@ -48,7 +48,7 @@ The following experimental properties must initially remain unchanged:
 | LR reduction | Preserve |
 | Dataset preprocessing | Preserve image semantics |
 
-Current default training configuration:
+Historical baseline training configuration:
 
 - Batch size: 32
 - Head epochs: 8
@@ -58,6 +58,22 @@ Current default training configuration:
 - Fine-tuning fraction: 25%
 - Augmentation: enabled
 - Monitor: `val_f1_macro`
+
+The official run schedule is amended to a reduced-budget protocol after the
+performance review:
+
+- Head epochs: 4 maximum
+- Fine-tuning epochs: 8 maximum
+- Total scheduled epochs per fold-seed run: 12 maximum
+- Fold coverage: 8 folds, unchanged
+- Seed coverage: 42, 123, and 2026, unchanged
+
+The 8+20 schedule remains the historical baseline for comparison. The reduced
+schedule is a declared methodology change and must be reported in the thesis;
+results from the two schedules must not be pooled or presented as equivalent.
+The validation macro-F1 checkpoint, early stopping, learning-rate reduction,
+class weighting, augmentation semantics, split manifests, and deterministic
+seeds remain unchanged.
 
 Optimization work must change **how efficiently the experiment executes**, not silently change what experiment is being performed.
 
@@ -815,4 +831,24 @@ The implementation gate is deliberately split into correctness, one-fold CPU san
 - [x] Per-epoch JSONL timing instrumentation added.
 - [x] Notebook progress-cell hygiene and performance-control wiring validated.
 - [x] CPU unit/integration gates completed; an RTX 4050 throughput benchmark and mixed-precision decision remain intentionally pending until the GPU environment is run.
+
+## 21. Reduced-Budget Methodology Amendment
+
+The official Training 2 protocol uses 4 head-training epochs and 8
+fine-tuning epochs as maximum budgets. This reduces scheduled optimization
+work from 28 to 12 epochs per fold-seed run while retaining the complete
+eight-fold, three-seed evaluation design. The change is motivated by the
+five-hour operational target and is guarded by the existing validation
+macro-F1 checkpointing and early stopping callbacks.
+
+The reduced schedule is scientifically defensible only if the completed run
+provides traceable evidence: every run records its configured and observed
+epoch counts, its best validation macro-F1, its checkpoint path, and its test
+predictions. Before interpreting the results, compare the reduced schedule's
+aggregate and per-class metrics against the historical 8+20 baseline where
+artifacts exist, and report any material difference as a limitation rather
+than selecting a favorable schedule after seeing test results.
+
+The official claim is therefore limited to the reduced-budget protocol. The
+historical 8+20 results remain a comparator and are not silently overwritten.
 

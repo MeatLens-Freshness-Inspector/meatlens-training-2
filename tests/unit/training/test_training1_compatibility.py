@@ -18,8 +18,8 @@ def test_named_training_strategies_have_one_official_and_one_baseline() -> None:
 def test_training1_defaults_match_training1() -> None:
     assert END_TO_END_DEFAULTS == {
         "batch_size": 32,
-        "epochs_head": 8,
-        "epochs_fine": 20,
+        "epochs_head": 4,
+        "epochs_fine": 8,
         "head_lr": 5e-4,
         "fine_tune_lr": 1e-5,
         "fine_tune_fraction": 0.25,

@@ -106,7 +106,7 @@ Default training contract:
 - seeds: `42`, `123`, `2026`
 - metrics: `accuracy`, macro `precision`, macro `recall`, macro `F1`
 - confusion matrix: CSV and PNG
-- frozen classification head for 8 epochs, followed by top-25% backbone fine-tuning for 20 epochs
+- frozen classification head for 4 epochs maximum, followed by top-25% backbone fine-tuning for 8 epochs maximum
 - head learning rate `5e-4`; fine-tuning learning rate `1e-5`
 - class weights and geometry-only augmentation applied only to training images
 - checkpointing, early stopping, and learning-rate reduction monitored by validation macro-F1
@@ -137,6 +137,9 @@ Procedure controls now exposed through the shared setup and training notebooks:
   - set `False` only for an explicitly labeled throughput benchmark
 - `TRAIN_VERBOSE`
   - default `2` for one concise Keras line per epoch
+- `EPOCHS_HEAD` and `EPOCHS_FINE`
+  - official reduced-budget defaults are 4 and 8 maximum epochs, respectively
+  - all 8 folds and 3 seeds are retained; this changes the training budget, not the evaluation coverage
 - Each fold writes timing records to `logs/<fold>_seed<seed>_performance.jsonl`.
   These records include epoch duration, train/validation batch time, images per
   second, and validation metrics. GPU utilization and mixed-precision benefit

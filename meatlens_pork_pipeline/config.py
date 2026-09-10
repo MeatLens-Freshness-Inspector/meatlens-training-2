@@ -15,8 +15,8 @@ TRAINING_STRATEGIES = (
 )
 END_TO_END_DEFAULTS = {
     "batch_size": 32,
-    "epochs_head": 8,
-    "epochs_fine": 20,
+    "epochs_head": 4,
+    "epochs_fine": 8,
     "head_lr": 5e-4,
     "fine_tune_lr": 1e-5,
     "fine_tune_fraction": 0.25,
