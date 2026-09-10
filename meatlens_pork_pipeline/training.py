@@ -6,13 +6,20 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, log_loss
+from sklearn.metrics import accuracy_score, f1_score, log_loss
 import tensorflow as tf
 from sklearn.utils.class_weight import compute_class_weight as sklearn_compute_class_weight
 from tensorflow.keras import callbacks, layers
 from tensorflow.keras.applications import MobileNetV3Small
 
-from .config import INPUT_SIZE, LABEL_ORDER
+from .augmentation import build_training_augmentation
+from .config import (
+    END_TO_END_DEFAULTS,
+    INPUT_SIZE,
+    LABEL_ORDER,
+    ROBOFLOW_CACHED_BASELINE_STRATEGY,
+    TRAINING1_COMPATIBLE_STRATEGY,
+)
 from .embeddings import (
     assemble_image_classifier_model,
     build_embedding_classifier_model,
@@ -45,11 +52,15 @@ class CsvImageSequence(tf.keras.utils.Sequence):
         df: pd.DataFrame,
         batch_size: int = 32,
         shuffle: bool = False,
+        use_augmentation: bool = False,
+        augmentation_preset: str = "geometry_only_v1",
     ) -> None:
         super().__init__()
         self.df = df.reset_index(drop=True).copy()
-        self.batch_size = batch_size
-        self.shuffle = shuffle
+        self.batch_size = int(batch_size)
+        self.shuffle = bool(shuffle)
+        self.use_augmentation = bool(use_augmentation)
+        self.augmentation = build_training_augmentation(augmentation_preset)
         self.indexes = np.arange(len(self.df))
         self.on_epoch_end()
 
@@ -60,11 +71,14 @@ class CsvImageSequence(tf.keras.utils.Sequence):
         batch_indexes = self.indexes[index * self.batch_size : (index + 1) * self.batch_size]
         batch_df = self.df.iloc[batch_indexes]
 
-        images: list[np.ndarray] = []
-        labels: list[int] = []
-        for row in batch_df.to_dict(orient="records"):
-            images.append(load_image_array(row, target_size=INPUT_SIZE))
-            labels.append(LABEL_ORDER.index(str(row["label"])))
+        rows = batch_df.to_dict(orient="records")
+        images = np.stack(
+            [load_image_array(row, target_size=INPUT_SIZE) for row in rows],
+            axis=0,
+        ).astype(np.float32)
+        if self.use_augmentation:
+            images = self.augmentation(images, training=True).numpy()
+        labels = [LABEL_ORDER.index(str(row["label"])) for row in rows]
 
         return (
             np.stack(images, axis=0),
@@ -132,6 +146,28 @@ def _find_backbone(model: tf.keras.Model) -> tf.keras.Model:
         if isinstance(layer, tf.keras.Model):
             return layer
     raise ValueError("Expected a nested backbone model in the classifier.")
+
+
+class ValidationMacroF1Callback(tf.keras.callbacks.Callback):
+    """Compute macro-F1 on the unaugmented validation sequence after each epoch."""
+
+    def __init__(self, validation_sequence: CsvImageSequence) -> None:
+        super().__init__()
+        self.validation_sequence = validation_sequence
+
+    def on_epoch_end(self, epoch: int, logs: dict[str, float] | None = None) -> None:
+        del epoch
+        logs = logs if logs is not None else {}
+        y_true: list[int] = []
+        y_pred: list[int] = []
+        for batch_index in range(len(self.validation_sequence)):
+            images, labels = self.validation_sequence[batch_index]
+            probabilities = self.model(images, training=False).numpy()
+            y_true.extend(np.argmax(labels, axis=1).tolist())
+            y_pred.extend(np.argmax(probabilities, axis=1).tolist())
+        logs["val_f1_macro"] = float(
+            f1_score(y_true, y_pred, average="macro", zero_division=0)
+        )
 
 
 def _build_callbacks(checkpoint_path: Path) -> list[callbacks.Callback]:
@@ -207,13 +243,16 @@ def train_model(
     output_dir: Path,
     seed: int,
     epochs_head: int = 8,
-    epochs_fine: int = 12,
-    head_lr: float = 1e-4,
+    epochs_fine: int = 20,
+    head_lr: float = 5e-4,
     fine_tune_lr: float = 1e-5,
     label_smoothing: float = 0.0,
     head_variant: str = "linear_v1",
     training_strategy: str = "cached_embeddings_sgd_v1",
     weights: str | None = "imagenet",
+    batch_size: int = 32,
+    augmentation: bool = True,
+    fine_tune_fraction: float = 0.25,
 ) -> TrainingArtifacts:
     _set_training_seed(seed)
 
@@ -225,8 +264,110 @@ def train_model(
     model_h5_path = output_dir / "meatlens_mobilenetv3small_pork_cnn_only.keras"
     history_csv_path = output_dir / "training_history.csv"
 
+    if training_strategy in ("end_to_end",):
+        training_strategy = TRAINING1_COMPATIBLE_STRATEGY
+    elif training_strategy in ("cached_embeddings_sgd_v1", ROBOFLOW_CACHED_BASELINE_STRATEGY):
+        training_strategy = ROBOFLOW_CACHED_BASELINE_STRATEGY
+
     class_weights = compute_class_weights(train_df["label"])
-    if training_strategy == "cached_embeddings_sgd_v1":
+    if training_strategy == TRAINING1_COMPATIBLE_STRATEGY:
+        train_sequence = CsvImageSequence(
+            train_df,
+            batch_size=batch_size,
+            shuffle=True,
+            use_augmentation=augmentation,
+            augmentation_preset="geometry_only_v1",
+        )
+        val_sequence = CsvImageSequence(
+            val_df,
+            batch_size=batch_size,
+            shuffle=False,
+            use_augmentation=False,
+            augmentation_preset="geometry_only_v1",
+        )
+        model = build_mobilenetv3small_model(
+            weights=weights,
+            learning_rate=head_lr,
+            label_smoothing=0.0,
+            head_variant="training1_mlp_v1",
+        )
+        fit_callbacks = [
+            ValidationMacroF1Callback(val_sequence),
+            callbacks.ModelCheckpoint(
+                filepath=str(checkpoint_path),
+                monitor=END_TO_END_DEFAULTS["monitor"],
+                mode="max",
+                save_best_only=True,
+            ),
+            callbacks.EarlyStopping(
+                monitor=END_TO_END_DEFAULTS["monitor"],
+                mode="max",
+                patience=4,
+                restore_best_weights=True,
+            ),
+            callbacks.ReduceLROnPlateau(
+                monitor=END_TO_END_DEFAULTS["monitor"],
+                mode="max",
+                factor=0.5,
+                patience=2,
+                min_lr=1e-7,
+            ),
+        ]
+        head_history = model.fit(
+            train_sequence,
+            validation_data=val_sequence,
+            epochs=epochs_head,
+            class_weight=class_weights,
+            callbacks=fit_callbacks,
+            verbose=2,
+        )
+
+        backbone = _find_backbone(model)
+        backbone.trainable = True
+        fine_tune_at = max(
+            int(len(backbone.layers) * (1.0 - fine_tune_fraction)),
+            1,
+        )
+        for layer in backbone.layers[:fine_tune_at]:
+            layer.trainable = False
+        for layer in backbone.layers:
+            if isinstance(layer, tf.keras.layers.BatchNormalization):
+                layer.trainable = False
+
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(
+                learning_rate=fine_tune_lr
+            ),
+            loss=build_classification_loss(label_smoothing=0.0),
+            metrics=["accuracy"],
+        )
+        fine_history = model.fit(
+            train_sequence,
+            validation_data=val_sequence,
+            epochs=epochs_fine,
+            class_weight=class_weights,
+            callbacks=fit_callbacks,
+            verbose=2,
+        )
+        history_df = _history_to_frame([("head", head_history), ("fine_tune", fine_history)])
+        history_df.to_csv(history_csv_path, index=False)
+
+        if checkpoint_path.exists():
+            best_model = tf.keras.models.load_model(checkpoint_path, compile=False)
+        else:
+            best_model = model
+        best_model.save(model_h5_path, include_optimizer=False)
+        return TrainingArtifacts(
+            model_h5_path=model_h5_path,
+            checkpoint_path=checkpoint_path,
+            history_csv_path=history_csv_path,
+            train_count=len(train_df),
+            val_count=len(val_df),
+            class_weights=class_weights,
+            training_strategy=TRAINING1_COMPATIBLE_STRATEGY,
+        )
+
+    if training_strategy == ROBOFLOW_CACHED_BASELINE_STRATEGY:
         embedding_cache_dir = output_dir / "embedding_cache"
         feature_extractor = build_feature_extractor_model(weights=weights)
         train_cache_path = embedding_cache_dir / "train_embeddings.npz"
@@ -278,7 +419,7 @@ def train_model(
             train_count=len(train_df),
             val_count=len(val_df),
             class_weights=class_weights,
-            training_strategy=training_strategy,
+            training_strategy=ROBOFLOW_CACHED_BASELINE_STRATEGY,
             embedding_cache_dir=embedding_cache_dir,
         )
 
@@ -348,71 +489,9 @@ def train_model(
             embedding_cache_dir=embedding_cache_dir,
         )
 
-    if training_strategy != "end_to_end":
+    if training_strategy != "cached_embeddings_v1":
         raise ValueError(
             f"Unsupported training_strategy {training_strategy!r}. "
-            "Expected one of ['cached_embeddings_sgd_v1', 'cached_embeddings_v1', 'end_to_end']."
+            "Expected one of ['training1_compatible_end_to_end', "
+            "'roboflow_cached_baseline_v1', 'cached_embeddings_v1']."
         )
-
-    train_sequence = CsvImageSequence(train_df, batch_size=32, shuffle=True)
-    val_sequence = CsvImageSequence(val_df, batch_size=32, shuffle=False)
-
-    model = build_mobilenetv3small_model(
-        weights=weights,
-        learning_rate=head_lr,
-        label_smoothing=label_smoothing,
-        head_variant=head_variant,
-    )
-    fit_callbacks = _build_callbacks(checkpoint_path)
-    phase_histories: list[tuple[str, tf.keras.callbacks.History]] = []
-
-    if epochs_head > 0:
-        head_history = model.fit(
-            train_sequence,
-            validation_data=val_sequence,
-            epochs=epochs_head,
-            class_weight=class_weights,
-            callbacks=fit_callbacks,
-            verbose=2,
-        )
-        phase_histories.append(("head", head_history))
-
-    if epochs_fine > 0:
-        backbone = _find_backbone(model)
-        backbone.trainable = True
-        fine_tune_at = max(int(len(backbone.layers) * 0.75), 1)
-        for layer in backbone.layers[:fine_tune_at]:
-            layer.trainable = False
-
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=fine_tune_lr),
-            loss=build_classification_loss(label_smoothing=label_smoothing),
-            metrics=["accuracy"],
-        )
-
-        fine_history = model.fit(
-            train_sequence,
-            validation_data=val_sequence,
-            epochs=epochs_head + epochs_fine,
-            initial_epoch=epochs_head,
-            class_weight=class_weights,
-            callbacks=fit_callbacks,
-            verbose=2,
-        )
-        phase_histories.append(("fine_tune", fine_history))
-
-    history_df = _history_to_frame(phase_histories)
-    history_df.to_csv(history_csv_path, index=False)
-
-    best_model = tf.keras.models.load_model(checkpoint_path, compile=False)
-    best_model.save(model_h5_path, include_optimizer=False)
-
-    return TrainingArtifacts(
-        model_h5_path=model_h5_path,
-        checkpoint_path=checkpoint_path,
-        history_csv_path=history_csv_path,
-        train_count=len(train_df),
-        val_count=len(val_df),
-        class_weights=class_weights,
-        training_strategy=training_strategy,
-    )

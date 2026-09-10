@@ -24,11 +24,19 @@ def _add_common_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--background-mode", default="gray", choices=["gray", "black", "mean"])
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--epochs-head", type=int, default=8)
-    parser.add_argument("--epochs-fine", type=int, default=12)
+    parser.add_argument("--epochs-fine", type=int, default=20)
+    parser.add_argument("--head-lr", type=float, default=5e-4)
+    parser.add_argument("--fine-tune-lr", type=float, default=1e-5)
     parser.add_argument(
         "--training-strategy",
-        default="cached_embeddings_sgd_v1",
-        choices=["cached_embeddings_sgd_v1", "cached_embeddings_v1", "end_to_end"],
+        default="training1_compatible_end_to_end",
+        choices=[
+            "training1_compatible_end_to_end",
+            "roboflow_cached_baseline_v1",
+            "cached_embeddings_sgd_v1",
+            "cached_embeddings_v1",
+            "end_to_end",
+        ],
     )
 
 
@@ -54,11 +62,19 @@ def _build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--output-dir", type=Path, required=True)
     train_parser.add_argument("--seed", type=int, required=True)
     train_parser.add_argument("--epochs-head", type=int, default=8)
-    train_parser.add_argument("--epochs-fine", type=int, default=12)
+    train_parser.add_argument("--epochs-fine", type=int, default=20)
+    train_parser.add_argument("--head-lr", type=float, default=5e-4)
+    train_parser.add_argument("--fine-tune-lr", type=float, default=1e-5)
     train_parser.add_argument(
         "--training-strategy",
-        default="cached_embeddings_sgd_v1",
-        choices=["cached_embeddings_sgd_v1", "cached_embeddings_v1", "end_to_end"],
+        default="training1_compatible_end_to_end",
+        choices=[
+            "training1_compatible_end_to_end",
+            "roboflow_cached_baseline_v1",
+            "cached_embeddings_sgd_v1",
+            "cached_embeddings_v1",
+            "end_to_end",
+        ],
     )
 
     evaluate_parser = subparsers.add_parser("evaluate")
@@ -102,6 +118,8 @@ def _run_train(args: argparse.Namespace) -> int:
         seed=args.seed,
         epochs_head=args.epochs_head,
         epochs_fine=args.epochs_fine,
+        head_lr=args.head_lr,
+        fine_tune_lr=args.fine_tune_lr,
         training_strategy=args.training_strategy,
     )
     return 0
@@ -207,6 +225,8 @@ def _run_full_pipeline(args: argparse.Namespace) -> int:
         seed=args.seed,
         epochs_head=args.epochs_head,
         epochs_fine=args.epochs_fine,
+        head_lr=args.head_lr,
+        fine_tune_lr=args.fine_tune_lr,
         training_strategy=args.training_strategy,
     )
     model_h5_path = Path(

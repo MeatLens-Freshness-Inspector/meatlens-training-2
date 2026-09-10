@@ -13,7 +13,8 @@ def test_training_pipeline_usage_is_notebook_first() -> None:
     assert "environment.windows-gpu.yml" in content
     assert "meatlens-tf210-gpu" in content
     assert "numpy<2" in content
-    assert "data/processed_hsv_lab_threshold_roi_224/processing_summary.csv" in content
+    assert "data/roboflow_processed_hsv_lab_threshold_roi_224" in content
+    assert "roboflow dataset/" in content
 
 
 def test_training_pipeline_usage_describes_procedure_improvements() -> None:

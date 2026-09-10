@@ -19,8 +19,15 @@ def build_classification_head(
         features = layers.Dropout(0.1, name="dropout_2")(features)
         return layers.Dense(num_classes, activation="softmax", name="predictions")(features)
 
+    if head_variant == "training1_mlp_v1":
+        features = layers.Dropout(0.30, name="image_dropout")(features)
+        features = layers.Dense(128, activation="relu", name="dense_128")(features)
+        features = layers.Dropout(0.30, name="dense_dropout")(features)
+        return layers.Dense(num_classes, activation="softmax", name="classification_head")(features)
+
     raise ValueError(
-        f"Unsupported head_variant {head_variant!r}. Expected one of ['linear_v1', 'mlp_v1']."
+        f"Unsupported head_variant {head_variant!r}. Expected one of "
+        "['linear_v1', 'mlp_v1', 'training1_mlp_v1']."
     )
 
 

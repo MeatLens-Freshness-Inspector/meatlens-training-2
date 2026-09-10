@@ -55,6 +55,7 @@ def test_train_8fold_mobilenetv3small_writes_fold_artifacts(tmp_path: Path) -> N
             "SKIP_GPU_CHECK": True,
             "GENERATED_SPLITS_ROOT": str(generated_splits_root),
             "TRAINING_OUTPUTS_ROOT": str(training_outputs_root),
+            "EIGHTFOLD_OUTPUT_ROOT": str(training_outputs_root / "t1_official"),
             "RUN_SEEDS": [42],
             "SELECT_FOLDS": ["fold1"],
             "MODEL_WEIGHTS": None,
@@ -66,7 +67,7 @@ def test_train_8fold_mobilenetv3small_writes_fold_artifacts(tmp_path: Path) -> N
         cwd=Path.cwd(),
     )
 
-    output_root = training_outputs_root / "mobilenetv3small_8fold_processed_roi_cnn_only"
+    output_root = training_outputs_root / "t1_official"
     metrics_path = output_root / "processed_roi8_cnn_only_seed_metrics.csv"
     metrics_df = pd.read_csv(metrics_path)
 
@@ -126,6 +127,7 @@ def test_train_8fold_mobilenetv3small_writes_procedure_metrics(tmp_path: Path) -
             "INPUT_MODE": "raw_center_crop_224",
             "GENERATED_SPLITS_ROOT": str(generated_splits_root),
             "TRAINING_OUTPUTS_ROOT": str(training_outputs_root),
+            "EIGHTFOLD_OUTPUT_ROOT": str(training_outputs_root / "t1_procedure"),
             "RUN_SEEDS": [42],
             "SELECT_FOLDS": ["fold1"],
             "MODEL_WEIGHTS": None,
@@ -138,7 +140,7 @@ def test_train_8fold_mobilenetv3small_writes_procedure_metrics(tmp_path: Path) -
         cwd=Path.cwd(),
     )
 
-    output_root = training_outputs_root / "mobilenetv3small_8fold_processed_roi_cnn_only"
+    output_root = training_outputs_root / "t1_procedure"
     metrics_df = pd.read_csv(output_root / "processed_roi8_cnn_only_seed_metrics.csv")
 
     assert metrics_df.loc[0, "input_mode"] == "raw_center_crop_224"

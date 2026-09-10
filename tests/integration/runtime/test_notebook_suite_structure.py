@@ -53,8 +53,8 @@ def test_shared_setup_notebook_exposes_procedure_improvement_contract() -> None:
     assert "RAW_CENTER_CROP_ROOT = Path(str(override('RAW_CENTER_CROP_ROOT', DATA_ROOT / 'raw_center_crop_224')))" in code_source
     assert "AUGMENTATION_PRESET = str(override('AUGMENTATION_PRESET', 'geometry_only_v1'))" in code_source
     assert "SEVERE_ERROR_LABEL_PAIRS = [('fresh', 'spoiled'), ('spoiled', 'fresh')]" in code_source
-    assert "HEAD_LR = float(override('HEAD_LR', 1e-4))" in code_source
-    assert "TRAINING_STRATEGY = str(override('TRAINING_STRATEGY', 'cached_embeddings_sgd_v1'))" in code_source
+    assert "HEAD_LR = float(override('HEAD_LR', 5e-4))" in code_source
+    assert "TRAINING_STRATEGY = str(override('TRAINING_STRATEGY', 'training1_compatible_end_to_end'))" in code_source
     assert "def resolve_input_root(input_mode: str) -> Path:" in code_source
     assert "def resolve_fine_tune_fraction(value: object) -> float:" in code_source
     assert "def build_sample_heldout_validation_split(" in code_source

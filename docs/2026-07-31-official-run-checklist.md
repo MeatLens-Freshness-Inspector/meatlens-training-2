@@ -2,11 +2,11 @@
 
 Date: Friday, July 31, 2026
 
-This is the exact notebook-first run plan I would use for the next full official pass.
+This is the exact notebook-first run plan for the training-1-compatible Roboflow pass.
 
 ## Goal
 
-Run the full MeatLens training and export flow using the stabilized cached-embedding default instead of the older unstable end-to-end image-level fine-tuning path.
+Run the full MeatLens training and export flow using the Roboflow dataset and the training-1-compatible end-to-end image-training methodology, while preserving the recorded cached Roboflow baseline.
 
 ## Environment
 
@@ -21,16 +21,16 @@ conda activate meatlens-tf210-gpu
 Leave the training strategy on:
 
 ```python
-TRAINING_STRATEGY = 'cached_embeddings_sgd_v1'
+TRAINING_STRATEGY = 'training1_compatible_end_to_end'
 ```
 
-Do not switch back to:
+The preserved comparison baseline is explicitly:
 
 ```python
-TRAINING_STRATEGY = 'end_to_end'
+TRAINING_STRATEGY = 'roboflow_cached_baseline_v1'
 ```
 
-unless you are intentionally running a comparison against the old unstable path.
+It writes to the original cached-baseline namespace and must not overwrite it.
 
 ## Notebook Order
 
@@ -59,7 +59,8 @@ If you want to be explicit:
 ```python
 NOTEBOOK_OVERRIDES = {
     'NOTEBOOK_TEST_MODE': False,
-    'GENERATED_SPLITS_ROOT': ROOT / 'generated_splits',
+    'DATASET_SOURCE': 'roboflow',
+    'GENERATED_SPLITS_ROOT': ROOT / 'generated_splits' / 'roboflow',
 }
 ```
 
@@ -73,18 +74,19 @@ NOTEBOOK_OVERRIDES = {
     'SKIP_GPU_CHECK': False,
     'INPUT_MODE': 'processed_hsv_lab_threshold_roi_224',
     'AUGMENTATION_PRESET': 'geometry_only_v1',
-    'TRAINING_STRATEGY': 'cached_embeddings_sgd_v1',
+    'DATASET_SOURCE': 'roboflow',
+    'TRAINING_STRATEGY': 'training1_compatible_end_to_end',
     'RUN_SEEDS': [42, 123, 2026],
     'SELECT_FOLDS': [f'fold{i}' for i in range(1, 9)],
     'MODEL_WEIGHTS': 'imagenet',
     'BATCH_SIZE': 32,
     'EPOCHS_HEAD': 8,
     'EPOCHS_FINE': 20,
-    'HEAD_LR': 1e-4,
+    'HEAD_LR': 5e-4,
     'FINE_TUNE_LR': 1e-5,
     'FINE_TUNE_FRACTION': 0.25,
     'USE_TRAINING_AUGMENTATION': True,
-    'EIGHTFOLD_OUTPUT_ROOT': TRAINING_OUTPUTS_ROOT / 'mobilenetv3small_8fold_processed_roi_cnn_only',
+    'EIGHTFOLD_OUTPUT_ROOT': TRAINING_OUTPUTS_ROOT / 'mobilenetv3small_8fold_processed_roi_cnn_only_training1_compatible_end_to_end',
 }
 ```
 
@@ -116,18 +118,19 @@ NOTEBOOK_OVERRIDES = {
     'SKIP_GPU_CHECK': False,
     'INPUT_MODE': 'processed_hsv_lab_threshold_roi_224',
     'AUGMENTATION_PRESET': 'geometry_only_v1',
-    'TRAINING_STRATEGY': 'cached_embeddings_sgd_v1',
+    'DATASET_SOURCE': 'roboflow',
+    'TRAINING_STRATEGY': 'training1_compatible_end_to_end',
     'MODEL_WEIGHTS': 'imagenet',
     'FINAL_TRAINING_SEED': 42,
     'FINAL_VAL_SIZE': 0.15,
     'BATCH_SIZE': 32,
     'EPOCHS_HEAD': 8,
     'EPOCHS_FINE': 20,
-    'HEAD_LR': 1e-4,
+    'HEAD_LR': 5e-4,
     'FINE_TUNE_LR': 1e-5,
     'FINE_TUNE_FRACTION': 0.25,
     'USE_TRAINING_AUGMENTATION': True,
-    'FINAL_DEPLOYMENT_OUTPUT_ROOT': TRAINING_OUTPUTS_ROOT / 'mobilenetv3small_8samples_final_deployment_cnn_only',
+    'FINAL_DEPLOYMENT_OUTPUT_ROOT': TRAINING_OUTPUTS_ROOT / 'mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end',
 }
 ```
 
@@ -141,8 +144,9 @@ Usually no override is needed unless you want to point the smoke test at a diffe
 
 ## What Changed From Earlier Runs
 
-- `04_train_8fold_mobilenetv3small.ipynb` now defaults to `TRAINING_STRATEGY='cached_embeddings_sgd_v1'`.
-- `06_train_final_deployment_model.ipynb` inherits that same stabilized path through the shared fold trainer.
+- `04_train_8fold_mobilenetv3small.ipynb` now defaults to `DATASET_SOURCE='roboflow'` and `TRAINING_STRATEGY='training1_compatible_end_to_end'`.
+- `06_train_final_deployment_model.ipynb` uses fold 1's generated Roboflow train/validation files and the same official strategy.
+- the existing cached Roboflow baseline remains under `training_outputs_committable/roboflow/mobilenetv3small_8fold_processed_roi_cnn_only/`; its 92.7% accuracy record is unchanged.
 - the output contract is still the same at the user-facing level: metrics CSVs, predictions CSVs, confusion matrix CSV/PNG, Keras model, ONNX export, and smoke-test outputs.
 - you may now notice small internal staging folders like `_p` and `_e` under the training output root during notebook execution. Those are expected.
 
@@ -150,17 +154,17 @@ Usually no override is needed unless you want to point the smoke test at a diffe
 
 From notebook `04`:
 
-- `training_outputs/mobilenetv3small_8fold_processed_roi_cnn_only/processed_roi8_cnn_only_seed_metrics.csv`
+- `training_outputs/roboflow/mobilenetv3small_8fold_processed_roi_cnn_only_training1_compatible_end_to_end/processed_roi8_cnn_only_seed_metrics.csv`
 - per-fold prediction CSVs
 - per-fold confusion-matrix CSVs
 - per-fold confusion-matrix PNGs
 
 From notebook `06`:
 
-- `training_outputs/mobilenetv3small_8samples_final_deployment_cnn_only/models/meatlens_final_8samples_cnn_only_mobilenetv3small.keras`
-- `training_outputs/mobilenetv3small_8samples_final_deployment_cnn_only/final_validation_predictions.csv`
-- `training_outputs/mobilenetv3small_8samples_final_deployment_cnn_only/final_training_history.csv`
-- `training_outputs/mobilenetv3small_8samples_final_deployment_cnn_only/deployment_metadata.json`
+- `training_outputs/roboflow/mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end/models/meatlens_final_8samples_cnn_only_mobilenetv3small.keras`
+- `training_outputs/roboflow/mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end/final_validation_predictions.csv`
+- `training_outputs/roboflow/mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end/final_training_history.csv`
+- `training_outputs/roboflow/mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end/deployment_metadata.json`
 
 From notebooks `07` and `08`:
 

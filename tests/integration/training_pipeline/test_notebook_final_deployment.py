@@ -46,6 +46,7 @@ def test_train_final_deployment_model_writes_final_artifacts(tmp_path: Path) -> 
             "SKIP_GPU_CHECK": True,
             "PROCESSED_MANIFEST_PATH": str(processed_manifest_path),
             "TRAINING_OUTPUTS_ROOT": str(training_outputs_root),
+            "FINAL_DEPLOYMENT_OUTPUT_ROOT": str(training_outputs_root / "t1_deployment"),
             "RUN_SEEDS": [42],
             "MODEL_WEIGHTS": None,
             "BATCH_SIZE": 4,
@@ -57,7 +58,7 @@ def test_train_final_deployment_model_writes_final_artifacts(tmp_path: Path) -> 
         cwd=Path.cwd(),
     )
 
-    output_root = training_outputs_root / "mobilenetv3small_8samples_final_deployment_cnn_only"
+    output_root = training_outputs_root / "t1_deployment"
     assert (output_root / "models" / "meatlens_final_8samples_cnn_only_mobilenetv3small.keras").exists()
     assert (output_root / "final_validation_predictions.csv").exists()
     assert (output_root / "final_training_history.csv").exists()
@@ -92,7 +93,7 @@ def test_final_deployment_uses_sample_heldout_validation(tmp_path: Path) -> None
     processed_manifest_path.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(processed_manifest_path, index=False)
 
-    output_root = tmp_path / "training_outputs" / "mobilenetv3small_8samples_final_deployment_cnn_only"
+    output_root = tmp_path / "o" / "deploy"
     execute_notebook(
         Path("06_train_final_deployment_model.ipynb"),
         overrides={

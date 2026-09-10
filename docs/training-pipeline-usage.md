@@ -27,17 +27,18 @@ conda activate meatlens-pork-training
 
 ## Dataset Default
 
-The notebook suite is built around the dataset already present in the repo:
+The notebook suite explicitly uses the Roboflow dataset already present in the repo:
 
-- processed dataset root: `data/processed_hsv_lab_threshold_roi_224`
-- canonical manifest: `data/processed_hsv_lab_threshold_roi_224/processing_summary.csv`
+- Roboflow export root: `roboflow dataset/`
+- processed dataset root: `data/roboflow_processed_hsv_lab_threshold_roi_224`
+- generated folds: `generated_splits/roboflow/fold{i}_{train,val,test}.csv`
 - target labels: `fresh`, `not fresh`, `spoiled`
 
 The stored `E:\...` paths inside `processing_summary.csv` are treated as old source references. The notebooks rebuild local paths from the local dataset structure instead of trusting those old absolute paths.
 
 `00_shared_setup.ipynb` now reports whether that default processed dataset is ready, how many sample folders it sees, and how many manifest rows are available before you move into auditing or training.
 
-Raw or Excel manifests are still supported in the early notebooks, but the current default workflow starts from the processed summary that is already in `data/`.
+Raw or Excel manifests remain supported in the early audit/preprocessing notebooks, but the official training-2 workflow starts from the Roboflow export and its processed summary.
 
 ## GPU Requirement
 
@@ -105,6 +106,10 @@ Default training contract:
 - seeds: `42`, `123`, `2026`
 - metrics: `accuracy`, macro `precision`, macro `recall`, macro `F1`
 - confusion matrix: CSV and PNG
+- frozen classification head for 8 epochs, followed by top-25% backbone fine-tuning for 20 epochs
+- head learning rate `5e-4`; fine-tuning learning rate `1e-5`
+- class weights and geometry-only augmentation applied only to training images
+- checkpointing, early stopping, and learning-rate reduction monitored by validation macro-F1
 
 Procedure controls now exposed through the shared setup and training notebooks:
 
@@ -115,26 +120,27 @@ Procedure controls now exposed through the shared setup and training notebooks:
   - `geometry_only_v1`
   - `conservative_v1`
 - `TRAINING_STRATEGY`
-  - default `cached_embeddings_sgd_v1`
-  - `cached_embeddings_v1`
-  - `end_to_end`
+  - default `training1_compatible_end_to_end`
+  - `roboflow_cached_baseline_v1`
+  - legacy aliases remain accepted by the package CLI
 - `HEAD_LR`
-  - default `1e-4`
+  - default `5e-4`
 - `FINE_TUNE_FRACTION`
   - `0.0`
   - `0.25`
   - `1.0`
 
-Important behavior change:
+Strategy and accuracy provenance:
 
-- `04_train_8fold_mobilenetv3small.ipynb` now defaults to `TRAINING_STRATEGY='cached_embeddings_sgd_v1'`
-- this means the fold-training notebook now uses frozen MobileNetV3 feature extraction plus a cached-embedding SGD classifier by default
-- if you want to reproduce the older unstable image-level fine-tuning path, explicitly override `TRAINING_STRATEGY='end_to_end'`
+- `training1_compatible_end_to_end` is the official training-2 path and follows the training-1 CNN methodology.
+- `roboflow_cached_baseline_v1` maps to the existing cached-embedding implementation and writes to the original baseline namespace.
+- The recorded Roboflow fold 4 / seed 123 baseline remains exactly `0.927038626609442` (92.7%) under `training_outputs_committable/roboflow/mobilenetv3small_8fold_processed_roi_cnn_only/`.
+- The training-1-compatible rerun has a separate output namespace and does not overwrite or relabel that baseline. Its accuracy must be reported from its own saved predictions after the RTX 4050 run.
 
 Key output root:
 
 ```text
-training_outputs/mobilenetv3small_8fold_processed_roi_cnn_only/
+training_outputs/roboflow/mobilenetv3small_8fold_processed_roi_cnn_only_training1_compatible_end_to_end/
 ```
 
 ### 5. Regenerate official reports
@@ -143,7 +149,7 @@ Run `05_regenerate_metrics_and_reports.ipynb` after training finishes.
 
 This rebuilds aggregate reports from saved prediction CSVs without rerunning the whole training loop.
 
-Because fold 4 now writes the same prediction CSV and confusion-matrix artifacts through the cached-embedding path, `05_regenerate_metrics_and_reports.ipynb` does not need any workflow change.
+The report notebook selects the same strategy-specific root as notebook 04. It regenerates reports from saved prediction CSVs without rerunning training.
 
 In addition to the required core metrics, the report notebook now writes:
 
@@ -160,7 +166,7 @@ This notebook now uses sample-aware validation instead of random image-level val
 Key output root:
 
 ```text
-training_outputs/mobilenetv3small_8samples_final_deployment_cnn_only/
+training_outputs/roboflow/mobilenetv3small_8samples_final_deployment_cnn_only_training1_compatible_end_to_end/
 ```
 
 Important outputs include:

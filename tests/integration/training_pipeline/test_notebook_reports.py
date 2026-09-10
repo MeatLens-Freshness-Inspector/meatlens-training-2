@@ -22,7 +22,7 @@ def test_report_notebook_exposes_progress_phase_markers() -> None:
 
 
 def test_regenerate_metrics_and_reports_writes_summary_outputs(tmp_path: Path) -> None:
-    output_root = tmp_path / "training_outputs" / "mobilenetv3small_8fold_processed_roi_cnn_only"
+    output_root = tmp_path / "o"
     predictions_dir = output_root / "predictions"
     predictions_dir.mkdir(parents=True, exist_ok=True)
 
@@ -69,7 +69,7 @@ def test_regenerate_metrics_and_reports_writes_summary_outputs(tmp_path: Path) -
 
 
 def test_regenerate_reports_writes_procedure_summary_outputs(tmp_path: Path) -> None:
-    output_root = tmp_path / "training_outputs" / "mobilenetv3small_8fold_processed_roi_cnn_only"
+    output_root = tmp_path / "o"
     predictions_root = output_root / "predictions"
     predictions_root.mkdir(parents=True, exist_ok=True)
 

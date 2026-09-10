@@ -7,6 +7,23 @@ MODEL_INPUT_MODE = "cnn_only"
 IMAGE_CROP_MODE = "preprocessed_hsv_lab_threshold_roi_224"
 PIPELINE_OUTPUT_ROOT = Path("training_outputs") / "mobilenetv3small_pork_cnn_only_onnx"
 
+TRAINING1_COMPATIBLE_STRATEGY = "training1_compatible_end_to_end"
+ROBOFLOW_CACHED_BASELINE_STRATEGY = "roboflow_cached_baseline_v1"
+TRAINING_STRATEGIES = (
+    TRAINING1_COMPATIBLE_STRATEGY,
+    ROBOFLOW_CACHED_BASELINE_STRATEGY,
+)
+END_TO_END_DEFAULTS = {
+    "batch_size": 32,
+    "epochs_head": 8,
+    "epochs_fine": 20,
+    "head_lr": 5e-4,
+    "fine_tune_lr": 1e-5,
+    "fine_tune_fraction": 0.25,
+    "augmentation": True,
+    "monitor": "val_f1_macro",
+}
+
 
 @dataclass(frozen=True)
 class PipelinePaths:
