@@ -1,0 +1,29 @@
+{
+  "model_name": "meatlens_final_8samples_cnn_only_mobilenetv3small",
+  "backbone": "MobileNetV3Small",
+  "model_input_mode": "cnn_only",
+  "image_crop_mode": "processed_hsv_lab_threshold_roi_224",
+  "input_mode": "processed_hsv_lab_threshold_roi_224",
+  "dataset_source": "current",
+  "training_strategy": "training1_compatible_end_to_end",
+  "head_lr": 0.0005,
+  "fine_tune_lr": 1e-05,
+  "epochs_head": 1,
+  "epochs_fine": 0,
+  "fine_tune_fraction": 0.25,
+  "labels": [
+    "fresh",
+    "not fresh",
+    "spoiled"
+  ],
+  "seed": 42,
+  "validation_size": 0.25,
+  "train_count": 18,
+  "val_count": 6,
+  "accuracy": 0.3333333333333333,
+  "macro_precision": 0.1111111111111111,
+  "macro_recall": 0.3333333333333333,
+  "macro_f1": 0.16666666666666666,
+  "model_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\MeatLens\\meatlens-training-2\\tmp\\pytest-pre-push\\test_final_deployment_uses_sam0\\o\\deploy\\models\\meatlens_final_8samples_cnn_only_mobilenetv3small.keras",
+  "validation_predictions_path": "C:\\Users\\Adriaan M. Dimate\\Desktop\\development\\school\\MeatLens\\meatlens-training-2\\tmp\\pytest-pre-push\\test_final_deployment_uses_sam0\\o\\deploy\\final_validation_predictions.csv"
+}

@@ -1,0 +1,4 @@
+image_file_name,error
+train.jpg,segmentation_failed
+valid.jpg,segmentation_failed
+test.jpg,segmentation_failed

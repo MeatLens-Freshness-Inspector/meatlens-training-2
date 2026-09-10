@@ -90,6 +90,21 @@ class CsvImageSequence(tf.keras.utils.Sequence):
             np.random.shuffle(self.indexes)
 
 
+def _disable_backbone_batch_norm_fusion(backbone: tf.keras.Model) -> None:
+    """Use deterministic-compatible BatchNorm kernels during fine-tuning.
+
+    TensorFlow 2.10 has no deterministic GPU gradient for fused BatchNorm when
+    the layer is called with ``training=False``. The backbone deliberately
+    keeps BatchNorm statistics frozen during fine-tuning, so use the unfused
+    implementation before the backbone is connected to the classifier graph.
+    Newer Keras versions no longer expose ``fused`` but allow the attribute;
+    setting it keeps this code compatible across the supported environments.
+    """
+    for layer in backbone.layers:
+        if isinstance(layer, tf.keras.layers.BatchNormalization):
+            layer.fused = False
+
+
 def build_mobilenetv3small_model(
     input_shape: tuple[int, int, int] = (224, 224, 3),
     num_classes: int = 3,
@@ -104,6 +119,7 @@ def build_mobilenetv3small_model(
         weights=weights,
         input_shape=input_shape,
     )
+    _disable_backbone_batch_norm_fusion(backbone)
     backbone.trainable = False
 
     inputs = tf.keras.Input(shape=input_shape, name="image_input")

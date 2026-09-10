@@ -1,0 +1,7 @@
+label,local_image_path
+fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\fresh\fresh_0.jpg
+fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\fresh\fresh_1.jpg
+not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\not fresh\not_fresh_0.jpg
+not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\not fresh\not_fresh_1.jpg
+spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\spoiled\spoiled_0.jpg
+spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-affected\test_train_model_cached_embedd0\val\spoiled\spoiled_1.jpg

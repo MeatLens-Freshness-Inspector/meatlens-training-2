@@ -1,0 +1,2 @@
+input_mode,fine_tune_fraction,macro_f1_mean,macro_f1_std,worst_fold_macro_f1,severe_error_rate_mean
+processed_hsv_lab_threshold_roi_224,0.25,0.7777777777777777,0.22222222222222227,0.5555555555555555,0.0

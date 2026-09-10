@@ -1,0 +1,2 @@
+phase,epoch,accuracy,loss,val_accuracy,val_loss
+cached_embeddings_sgd,1,1.0,0.0006859460099470091,1.0,0.0006859460099470091

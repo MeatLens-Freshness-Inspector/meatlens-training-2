@@ -1,0 +1,10 @@
+image_name,label,processed_image_path
+fresh_6.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_6.jpg
+spoiled_17.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_17.jpg
+not fresh_11.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_11.jpg
+fresh_12.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_12.jpg
+not fresh_1.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_1.jpg
+not fresh_17.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_17.jpg
+fresh_7.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_7.jpg
+spoiled_3.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_3.jpg
+spoiled_8.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_8.jpg

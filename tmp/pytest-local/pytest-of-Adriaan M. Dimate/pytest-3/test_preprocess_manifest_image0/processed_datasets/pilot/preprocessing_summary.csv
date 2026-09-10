@@ -1,0 +1,2 @@
+image_name,label,processed_image_path,segmentation_failed,mask_area_ratio,center_overlap_ratio,number_of_components,touches_border
+fresh_001.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-3\test_preprocess_manifest_image0\processed_datasets\pilot\images\fresh\fresh_001.jpg,True,1.0,1.0,1,True

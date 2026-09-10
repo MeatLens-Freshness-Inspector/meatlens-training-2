@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 from meatlens_pork_pipeline.training import build_mobilenetv3small_model, compute_class_weights
 import pytest
 
@@ -15,6 +17,18 @@ def test_build_mobilenetv3small_model_uses_stable_training_defaults() -> None:
     assert "dense_128" not in {layer.name for layer in model.layers}
     assert model.optimizer.learning_rate.numpy() == pytest.approx(1e-4)
     assert model.loss.label_smoothing == pytest.approx(0.0)
+
+
+def test_build_mobilenetv3small_model_uses_nonfused_batchnorm_for_deterministic_gpu_finetuning() -> None:
+    model = build_mobilenetv3small_model(weights=None)
+
+    backbone = next(layer for layer in model.layers if isinstance(layer, tf.keras.Model))
+    batch_norm_layers = [
+        layer for layer in backbone.layers if isinstance(layer, tf.keras.layers.BatchNormalization)
+    ]
+
+    assert batch_norm_layers
+    assert all(getattr(layer, "fused", None) is False for layer in batch_norm_layers)
 
 
 def test_compute_class_weights_returns_all_three_indices() -> None:

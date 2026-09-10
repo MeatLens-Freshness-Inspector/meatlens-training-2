@@ -1,0 +1,3 @@
+fold,seed,predictions_path
+fold1,42,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-3\test_regenerate_metrics_and_re0\o\predictions\processed_roi8_cnn_only_fold1_seed42_test_predictions.csv
+fold2,42,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-3\test_regenerate_metrics_and_re0\o\predictions\processed_roi8_cnn_only_fold2_seed42_test_predictions.csv

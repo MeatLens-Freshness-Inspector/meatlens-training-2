@@ -1,0 +1,43 @@
+image_name,label,processed_image_path
+spoiled_7.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_7.jpg
+spoiled_15.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_15.jpg
+fresh_15.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_15.jpg
+not fresh_12.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_12.jpg
+not fresh_10.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_10.jpg
+spoiled_9.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_9.jpg
+not fresh_3.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_3.jpg
+fresh_11.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_11.jpg
+fresh_13.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_13.jpg
+fresh_0.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_0.jpg
+not fresh_4.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_4.jpg
+spoiled_0.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_0.jpg
+fresh_18.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_18.jpg
+spoiled_18.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_18.jpg
+not fresh_7.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_7.jpg
+fresh_8.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_8.jpg
+not fresh_2.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_2.jpg
+spoiled_5.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_5.jpg
+fresh_9.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_9.jpg
+spoiled_2.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_2.jpg
+not fresh_14.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_14.jpg
+not fresh_6.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_6.jpg
+not fresh_13.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_13.jpg
+fresh_3.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_3.jpg
+not fresh_19.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_19.jpg
+not fresh_16.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_16.jpg
+spoiled_1.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_1.jpg
+spoiled_13.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_13.jpg
+fresh_16.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_16.jpg
+spoiled_4.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_4.jpg
+fresh_2.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_2.jpg
+not fresh_9.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_9.jpg
+not fresh_5.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_5.jpg
+spoiled_10.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_10.jpg
+spoiled_14.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_14.jpg
+fresh_5.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_5.jpg
+fresh_17.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_17.jpg
+fresh_1.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_1.jpg
+spoiled_12.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_12.jpg
+not fresh_15.jpg,not fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\not fresh_15.jpg
+fresh_19.jpg,fresh,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\fresh_19.jpg
+spoiled_16.jpg,spoiled,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_generate_stratified_split0\spoiled_16.jpg

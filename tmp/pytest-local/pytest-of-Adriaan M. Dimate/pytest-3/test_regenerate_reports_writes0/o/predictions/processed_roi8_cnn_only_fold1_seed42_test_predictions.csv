@@ -1,0 +1,4 @@
+true_label,predicted_label
+fresh,spoiled
+not fresh,not fresh
+spoiled,fresh

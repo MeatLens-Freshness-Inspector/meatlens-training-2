@@ -1,0 +1,18 @@
+{
+  "seed": 42,
+  "model_name": "sequential",
+  "backbone": "MobileNetV3Small",
+  "model_input_mode": "cnn_only",
+  "image_crop_mode": "processed_hsv_lab_threshold_roi_224",
+  "input_mode": "processed_hsv_lab_threshold_roi_224",
+  "input_shape": [
+    224,
+    224,
+    3
+  ],
+  "labels": [
+    "fresh",
+    "not fresh",
+    "spoiled"
+  ]
+}

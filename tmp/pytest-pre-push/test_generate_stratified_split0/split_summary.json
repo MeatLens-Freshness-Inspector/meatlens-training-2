@@ -1,0 +1,6 @@
+{
+  "seed": 42,
+  "train_count": 42,
+  "val_count": 9,
+  "test_count": 9
+}

@@ -61,6 +61,20 @@ def test_resolve_image_path_accepts_split_csv_aliases(tmp_path: Path) -> None:
     assert resolve_image_path(processed_output_row) == image_path
 
 
+def test_resolve_image_path_rebases_stale_absolute_dataset_path(tmp_path: Path) -> None:
+    current_root = tmp_path / "current_repo"
+    old_root = tmp_path / "old_repo"
+    image_path = current_root / "data" / "roboflow_processed" / "fresh" / "sample.jpg"
+    _write_color_image(image_path, (200, 100, 90))
+
+    stale_path = old_root / "data" / "roboflow_processed" / "fresh" / image_path.name
+
+    assert resolve_image_path(
+        {"local_image_path": str(stale_path)},
+        project_root=current_root,
+    ) == image_path
+
+
 def test_cache_dataframe_embeddings_writes_feature_arrays(tmp_path: Path) -> None:
     image_a = tmp_path / "cache_inputs" / "fresh.jpg"
     image_b = tmp_path / "cache_inputs" / "spoiled.jpg"

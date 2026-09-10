@@ -1,0 +1,4 @@
+,fresh,not fresh,spoiled
+fresh,1.0,0.0,0.0
+not fresh,0.0,1.0,0.0
+spoiled,0.0,0.0,1.0

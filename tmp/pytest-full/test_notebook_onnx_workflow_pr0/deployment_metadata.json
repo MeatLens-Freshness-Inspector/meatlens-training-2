@@ -1,0 +1,9 @@
+{
+  "model_name": "meatlens_final_8samples_cnn_only_mobilenetv3small",
+  "input_mode": "raw_center_crop_224",
+  "labels": [
+    "fresh",
+    "not fresh",
+    "spoiled"
+  ]
+}

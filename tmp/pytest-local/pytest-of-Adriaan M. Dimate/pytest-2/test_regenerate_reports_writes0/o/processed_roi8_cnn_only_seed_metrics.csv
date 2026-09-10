@@ -1,0 +1,2 @@
+fold,seed,predictions_path,input_mode,fine_tune_fraction
+fold1,42,C:\Users\Adriaan M. Dimate\Desktop\development\school\MeatLens\meatlens-training-2\tmp\pytest-local\pytest-of-Adriaan M. Dimate\pytest-2\test_regenerate_reports_writes0\o\predictions\processed_roi8_cnn_only_fold1_seed42_test_predictions.csv,processed_hsv_lab_threshold_roi_224,0.25

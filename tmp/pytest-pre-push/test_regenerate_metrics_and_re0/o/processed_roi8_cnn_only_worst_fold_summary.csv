@@ -1,0 +1,2 @@
+fold,seed,accuracy,macro_precision,macro_recall,macro_f1,severe_error_rate,prediction_count
+fold2,42,0.6666666666666666,0.5,0.6666666666666666,0.5555555555555555,0.0,3

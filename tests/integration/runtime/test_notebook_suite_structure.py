@@ -98,6 +98,19 @@ def test_notebook_suite_exposes_dataset_source_selection() -> None:
     assert "fold1_train.csv" in final_source
 
 
+def test_training_notebook_preflights_image_paths_before_gpu_setup() -> None:
+    notebook = json.loads(Path("04_train_8fold_mobilenetv3small.ipynb").read_text(encoding="utf-8"))
+    code_source = "\n".join(
+        "".join(cell.get("source", []))
+        for cell in notebook["cells"]
+        if cell.get("cell_type") == "code"
+    )
+
+    assert "def validate_training_image_paths(" in code_source
+    assert "validate_training_image_paths(split_csv_paths)" in code_source
+    assert "resolve_image_path(row)" in code_source
+
+
 def test_test_suite_architecture_combines_module_and_feature_grouping() -> None:
     expected_directories = [
         Path("tests/support"),
