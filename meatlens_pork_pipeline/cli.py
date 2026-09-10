@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .config import PIPELINE_OUTPUT_ROOT, build_run_paths
+from .config import PERFORMANCE_DEFAULTS, PIPELINE_OUTPUT_ROOT, build_run_paths
 from .evaluation import evaluate_model
 from .manifest import load_manifest
 from .onnx_export import build_onnx_metadata, export_model_to_onnx, write_metadata_json
@@ -27,6 +27,7 @@ def _add_common_run_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--epochs-fine", type=int, default=20)
     parser.add_argument("--head-lr", type=float, default=5e-4)
     parser.add_argument("--fine-tune-lr", type=float, default=1e-5)
+    _add_training_performance_arguments(parser)
     parser.add_argument(
         "--training-strategy",
         default="training1_compatible_end_to_end",
@@ -65,6 +66,7 @@ def _build_parser() -> argparse.ArgumentParser:
     train_parser.add_argument("--epochs-fine", type=int, default=20)
     train_parser.add_argument("--head-lr", type=float, default=5e-4)
     train_parser.add_argument("--fine-tune-lr", type=float, default=1e-5)
+    _add_training_performance_arguments(train_parser)
     train_parser.add_argument(
         "--training-strategy",
         default="training1_compatible_end_to_end",
@@ -91,6 +93,31 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_common_run_arguments(run_parser)
 
     return parser
+
+
+def _add_training_performance_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--cache-mode",
+        choices=["none", "memory"],
+        default=PERFORMANCE_DEFAULTS["cache_mode"],
+    )
+    parser.add_argument(
+        "--deterministic-ops",
+        dest="deterministic_ops",
+        action="store_true",
+        default=PERFORMANCE_DEFAULTS["deterministic_ops"],
+    )
+    parser.add_argument(
+        "--no-deterministic-ops",
+        dest="deterministic_ops",
+        action="store_false",
+    )
+    parser.add_argument(
+        "--verbose",
+        type=int,
+        choices=[0, 1, 2],
+        default=PERFORMANCE_DEFAULTS["verbose"],
+    )
 
 
 def _run_preprocess(args: argparse.Namespace) -> int:
@@ -121,6 +148,10 @@ def _run_train(args: argparse.Namespace) -> int:
         head_lr=args.head_lr,
         fine_tune_lr=args.fine_tune_lr,
         training_strategy=args.training_strategy,
+        cache_mode=args.cache_mode,
+        deterministic_ops=args.deterministic_ops,
+        verbose=args.verbose,
+        performance_log_path=args.output_dir / "performance.jsonl",
     )
     return 0
 
@@ -228,6 +259,10 @@ def _run_full_pipeline(args: argparse.Namespace) -> int:
         head_lr=args.head_lr,
         fine_tune_lr=args.fine_tune_lr,
         training_strategy=args.training_strategy,
+        cache_mode=args.cache_mode,
+        deterministic_ops=args.deterministic_ops,
+        verbose=args.verbose,
+        performance_log_path=paths.logs_dir / "performance.jsonl",
     )
     model_h5_path = Path(
         getattr(

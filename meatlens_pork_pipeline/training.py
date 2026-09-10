@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import random
+import json
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
 import numpy as np
 import pandas as pd
@@ -17,9 +19,11 @@ from .config import (
     END_TO_END_DEFAULTS,
     INPUT_SIZE,
     LABEL_ORDER,
+    PERFORMANCE_DEFAULTS,
     ROBOFLOW_CACHED_BASELINE_STRATEGY,
     TRAINING1_COMPATIBLE_STRATEGY,
 )
+from .dataset_pipeline import build_image_dataset
 from .embeddings import (
     assemble_image_classifier_model,
     build_embedding_classifier_model,
@@ -31,7 +35,7 @@ from .embeddings import (
     predict_linear_ovr_probabilities,
 )
 from .image_io import load_image_array
-from .modeling import build_classification_head, build_classification_loss
+from .modeling import MacroF1Metric, build_classification_head, build_classification_loss
 
 
 @dataclass(frozen=True)
@@ -112,6 +116,8 @@ def build_mobilenetv3small_model(
     learning_rate: float = 1e-4,
     label_smoothing: float = 0.0,
     head_variant: str = "linear_v1",
+    augmentation: bool = False,
+    macro_f1: bool = False,
 ) -> tf.keras.Model:
     backbone = MobileNetV3Small(
         include_top=False,
@@ -123,15 +129,21 @@ def build_mobilenetv3small_model(
     backbone.trainable = False
 
     inputs = tf.keras.Input(shape=input_shape, name="image_input")
-    x = layers.Rescaling(scale=1.0 / 127.5, offset=-1.0, name="mobilenetv3_rescale")(inputs)
+    x = inputs
+    if augmentation:
+        x = build_training_augmentation("geometry_only_v1")(x)
+    x = layers.Rescaling(scale=1.0 / 127.5, offset=-1.0, name="mobilenetv3_rescale")(x)
     x = backbone(x, training=False)
     x = layers.GlobalAveragePooling2D(name="avg_pool")(x)
     outputs = build_classification_head(x, num_classes=num_classes, head_variant=head_variant)
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name="meatlens_mobilenetv3small_cnn_only")
+    metrics: list[object] = ["accuracy"]
+    if macro_f1:
+        metrics.append(MacroF1Metric(num_classes=num_classes, name="f1_macro"))
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss=build_classification_loss(label_smoothing=label_smoothing),
-        metrics=["accuracy"],
+        metrics=metrics,
     )
     return model
 
@@ -147,14 +159,86 @@ def compute_class_weights(labels: pd.Series | list[str]) -> dict[int, float]:
     return {int(index): float(weight) for index, weight in enumerate(weights)}
 
 
-def _set_training_seed(seed: int) -> None:
+def _set_training_seed(
+    seed: int,
+    deterministic_ops: bool = PERFORMANCE_DEFAULTS["deterministic_ops"],
+) -> None:
     random.seed(seed)
     np.random.seed(seed)
     tf.keras.utils.set_random_seed(seed)
-    try:
-        tf.config.experimental.enable_op_determinism()
-    except Exception:
-        pass
+    if deterministic_ops:
+        try:
+            tf.config.experimental.enable_op_determinism()
+        except Exception:
+            pass
+
+
+class PerformanceTimingCallback(tf.keras.callbacks.Callback):
+    """Write one compact timing record per epoch without noisy console output."""
+
+    def __init__(
+        self,
+        output_path: Path | None,
+        train_sample_count: int,
+        val_sample_count: int,
+        phase: str = "training",
+    ) -> None:
+        super().__init__()
+        self.output_path = Path(output_path) if output_path is not None else None
+        self.train_sample_count = int(train_sample_count)
+        self.val_sample_count = int(val_sample_count)
+        self.phase = str(phase)
+        self._epoch_started_at = 0.0
+        self._train_batch_started_at = 0.0
+        self._validation_batch_started_at = 0.0
+        self._train_batch_seconds = 0.0
+        self._validation_batch_seconds = 0.0
+
+    def on_epoch_begin(self, epoch, logs=None) -> None:
+        del epoch, logs
+        self._epoch_started_at = perf_counter()
+        self._train_batch_seconds = 0.0
+        self._validation_batch_seconds = 0.0
+
+    def on_train_batch_begin(self, batch, logs=None) -> None:
+        del batch, logs
+        self._train_batch_started_at = perf_counter()
+
+    def on_train_batch_end(self, batch, logs=None) -> None:
+        del batch, logs
+        self._train_batch_seconds += perf_counter() - self._train_batch_started_at
+
+    def on_test_batch_begin(self, batch, logs=None) -> None:
+        del batch, logs
+        self._validation_batch_started_at = perf_counter()
+
+    def on_test_batch_end(self, batch, logs=None) -> None:
+        del batch, logs
+        self._validation_batch_seconds += perf_counter() - self._validation_batch_started_at
+
+    def on_epoch_end(self, epoch, logs=None) -> None:
+        if self.output_path is None:
+            return
+        logs = logs or {}
+        epoch_total_seconds = perf_counter() - self._epoch_started_at
+        record = {
+            "phase": self.phase,
+            "epoch": int(epoch) + 1,
+            "epoch_total_seconds": float(epoch_total_seconds),
+            "train_batch_seconds": float(self._train_batch_seconds),
+            "validation_batch_seconds": float(self._validation_batch_seconds),
+            "train_images_per_second": float(
+                self.train_sample_count / self._train_batch_seconds
+                if self._train_batch_seconds > 0.0
+                else 0.0
+            ),
+        }
+        for metric_name in ("loss", "accuracy", "val_loss", "val_accuracy", "val_f1_macro"):
+            if metric_name in logs:
+                record[metric_name] = float(logs[metric_name])
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.output_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record) + "\n")
 
 
 def _find_backbone(model: tf.keras.Model) -> tf.keras.Model:
@@ -162,6 +246,40 @@ def _find_backbone(model: tf.keras.Model) -> tf.keras.Model:
         if isinstance(layer, tf.keras.Model):
             return layer
     raise ValueError("Expected a nested backbone model in the classifier.")
+
+
+def _build_end_to_end_datasets(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    *,
+    batch_size: int,
+    cache_mode: str | Path,
+    seed: int,
+) -> tuple[tf.data.Dataset, tf.data.Dataset]:
+    return (
+        build_image_dataset(
+            train_df,
+            batch_size=batch_size,
+            shuffle=True,
+            cache_mode=cache_mode,
+            seed=seed,
+        ),
+        build_image_dataset(
+            val_df,
+            batch_size=batch_size,
+            shuffle=False,
+            cache_mode=cache_mode,
+            seed=seed,
+        ),
+    )
+
+
+def _compile_end_to_end_model(model: tf.keras.Model, learning_rate: float) -> None:
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+        metrics=["accuracy", MacroF1Metric(num_classes=len(LABEL_ORDER), name="f1_macro")],
+    )
 
 
 class ValidationMacroF1Callback(tf.keras.callbacks.Callback):
@@ -269,8 +387,12 @@ def train_model(
     batch_size: int = 32,
     augmentation: bool = True,
     fine_tune_fraction: float = 0.25,
+    cache_mode: str | Path = PERFORMANCE_DEFAULTS["cache_mode"],
+    deterministic_ops: bool = PERFORMANCE_DEFAULTS["deterministic_ops"],
+    verbose: int = PERFORMANCE_DEFAULTS["verbose"],
+    performance_log_path: Path | None = None,
 ) -> TrainingArtifacts:
-    _set_training_seed(seed)
+    _set_training_seed(seed, deterministic_ops=deterministic_ops)
 
     train_df = pd.read_csv(train_csv)
     val_df = pd.read_csv(val_csv)
@@ -287,28 +409,29 @@ def train_model(
 
     class_weights = compute_class_weights(train_df["label"])
     if training_strategy == TRAINING1_COMPATIBLE_STRATEGY:
-        train_sequence = CsvImageSequence(
+        train_dataset, val_dataset = _build_end_to_end_datasets(
             train_df,
-            batch_size=batch_size,
-            shuffle=True,
-            use_augmentation=augmentation,
-            augmentation_preset="geometry_only_v1",
-        )
-        val_sequence = CsvImageSequence(
             val_df,
             batch_size=batch_size,
-            shuffle=False,
-            use_augmentation=False,
-            augmentation_preset="geometry_only_v1",
+            cache_mode=cache_mode,
+            seed=seed,
         )
         model = build_mobilenetv3small_model(
             weights=weights,
             learning_rate=head_lr,
             label_smoothing=0.0,
             head_variant="training1_mlp_v1",
+            augmentation=augmentation,
+            macro_f1=True,
+        )
+        _compile_end_to_end_model(model, head_lr)
+        performance_callback = PerformanceTimingCallback(
+            output_path=performance_log_path,
+            train_sample_count=len(train_df),
+            val_sample_count=len(val_df),
+            phase="head",
         )
         fit_callbacks = [
-            ValidationMacroF1Callback(val_sequence),
             callbacks.ModelCheckpoint(
                 filepath=str(checkpoint_path),
                 monitor=END_TO_END_DEFAULTS["monitor"],
@@ -328,44 +451,52 @@ def train_model(
                 patience=2,
                 min_lr=1e-7,
             ),
+            performance_callback,
         ]
-        head_history = model.fit(
-            train_sequence,
-            validation_data=val_sequence,
-            epochs=epochs_head,
-            class_weight=class_weights,
-            callbacks=fit_callbacks,
-            verbose=2,
-        )
+        phase_histories: list[tuple[str, tf.keras.callbacks.History]] = []
+        if epochs_head > 0:
+            head_history = model.fit(
+                train_dataset,
+                validation_data=val_dataset,
+                epochs=epochs_head,
+                class_weight=class_weights,
+                callbacks=fit_callbacks,
+                verbose=verbose,
+            )
+            phase_histories.append(("head", head_history))
 
-        backbone = _find_backbone(model)
-        backbone.trainable = True
-        fine_tune_at = max(
-            int(len(backbone.layers) * (1.0 - fine_tune_fraction)),
-            1,
-        )
-        for layer in backbone.layers[:fine_tune_at]:
-            layer.trainable = False
-        for layer in backbone.layers:
-            if isinstance(layer, tf.keras.layers.BatchNormalization):
+        if epochs_fine > 0 and fine_tune_fraction > 0.0:
+            backbone = _find_backbone(model)
+            backbone.trainable = True
+            fine_tune_at = max(
+                int(len(backbone.layers) * (1.0 - fine_tune_fraction)),
+                1,
+            )
+            for layer in backbone.layers[:fine_tune_at]:
                 layer.trainable = False
+            for layer in backbone.layers:
+                if isinstance(layer, tf.keras.layers.BatchNormalization):
+                    layer.trainable = False
 
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(
-                learning_rate=fine_tune_lr
-            ),
-            loss=build_classification_loss(label_smoothing=0.0),
-            metrics=["accuracy"],
-        )
-        fine_history = model.fit(
-            train_sequence,
-            validation_data=val_sequence,
-            epochs=epochs_fine,
-            class_weight=class_weights,
-            callbacks=fit_callbacks,
-            verbose=2,
-        )
-        history_df = _history_to_frame([("head", head_history), ("fine_tune", fine_history)])
+            _compile_end_to_end_model(model, fine_tune_lr)
+            performance_callback = PerformanceTimingCallback(
+                output_path=performance_log_path,
+                train_sample_count=len(train_df),
+                val_sample_count=len(val_df),
+                phase="fine_tune",
+            )
+            fine_callbacks = [*fit_callbacks[:-1], performance_callback]
+            fine_history = model.fit(
+                train_dataset,
+                validation_data=val_dataset,
+                epochs=epochs_fine,
+                class_weight=class_weights,
+                callbacks=fine_callbacks,
+                verbose=verbose,
+            )
+            phase_histories.append(("fine_tune", fine_history))
+
+        history_df = _history_to_frame(phase_histories)
         history_df.to_csv(history_csv_path, index=False)
 
         if checkpoint_path.exists():
