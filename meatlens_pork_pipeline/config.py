@@ -23,6 +23,11 @@ END_TO_END_DEFAULTS = {
     "augmentation": True,
     "monitor": "val_f1_macro",
 }
+PERFORMANCE_DEFAULTS = {
+    "cache_mode": "memory",
+    "deterministic_ops": True,
+    "verbose": 2,
+}
 
 
 @dataclass(frozen=True)

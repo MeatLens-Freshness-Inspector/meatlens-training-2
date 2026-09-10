@@ -1,6 +1,11 @@
 import tensorflow as tf
+import pandas as pd
 
-from meatlens_pork_pipeline.training import build_mobilenetv3small_model, compute_class_weights
+from meatlens_pork_pipeline.training import (
+    build_mobilenetv3small_model,
+    compute_class_weights,
+    _build_end_to_end_datasets,
+)
 import pytest
 
 
@@ -34,3 +39,38 @@ def test_build_mobilenetv3small_model_uses_nonfused_batchnorm_for_deterministic_
 def test_compute_class_weights_returns_all_three_indices() -> None:
     class_weights = compute_class_weights(["fresh", "fresh", "not fresh", "spoiled"])
     assert set(class_weights) == {0, 1, 2}
+
+
+def test_build_mobilenetv3small_model_can_own_training_augmentation() -> None:
+    model = build_mobilenetv3small_model(weights=None, augmentation=True)
+
+    augmentation = model.get_layer("training_augmentation")
+    assert {
+        layer.__class__.__name__ for layer in augmentation.layers
+    } == {"RandomFlip", "RandomRotation", "RandomZoom", "RandomTranslation"}
+
+
+def test_end_to_end_datasets_use_tensorflow_pipeline_for_each_split(monkeypatch) -> None:
+    calls = []
+
+    def fake_build(dataframe, *, batch_size, shuffle, cache_mode, seed):
+        calls.append((dataframe, batch_size, shuffle, cache_mode, seed))
+        return f"dataset-{len(calls)}"
+
+    monkeypatch.setattr("meatlens_pork_pipeline.training.build_image_dataset", fake_build)
+    train_df = pd.DataFrame([{"label": "fresh", "local_image_path": "train.jpg"}])
+    val_df = pd.DataFrame([{"label": "spoiled", "local_image_path": "val.jpg"}])
+
+    train_dataset, val_dataset = _build_end_to_end_datasets(
+        train_df,
+        val_df,
+        batch_size=64,
+        cache_mode="none",
+        seed=42,
+    )
+
+    assert (train_dataset, val_dataset) == ("dataset-1", "dataset-2")
+    assert calls == [
+        (train_df, 64, True, "none", 42),
+        (val_df, 64, False, "none", 42),
+    ]

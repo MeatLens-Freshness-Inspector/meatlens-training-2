@@ -129,6 +129,25 @@ Procedure controls now exposed through the shared setup and training notebooks:
   - `0.0`
   - `0.25`
   - `1.0`
+- `CACHE_MODE`
+  - default `memory`; caches decoded/resized images before random augmentation
+  - `none` disables decoded-image caching when host RAM is constrained
+- `DETERMINISTIC_OPS`
+  - default `True` for reproducible final runs
+  - set `False` only for an explicitly labeled throughput benchmark
+- `TRAIN_VERBOSE`
+  - default `2` for one concise Keras line per epoch
+- Each fold writes timing records to `logs/<fold>_seed<seed>_performance.jsonl`.
+  These records include epoch duration, train/validation batch time, images per
+  second, and validation metrics. GPU utilization and mixed-precision benefit
+  still require measurement on the actual RTX 4050 environment.
+
+For the package CLI, the equivalent training controls are:
+
+```text
+python -m meatlens_pork_pipeline.cli train ... --cache-mode memory --deterministic-ops --verbose 2
+python -m meatlens_pork_pipeline.cli train ... --cache-mode none --no-deterministic-ops --verbose 0
+```
 
 Strategy and accuracy provenance:
 
