@@ -133,8 +133,9 @@ Procedure controls now exposed through the shared setup and training notebooks:
   - default `memory`; caches decoded/resized images before random augmentation
   - `none` disables decoded-image caching when host RAM is constrained
 - `DETERMINISTIC_OPS`
-  - default `True` for reproducible final runs
-  - set `False` only for an explicitly labeled throughput benchmark
+  - default `False` for the pinned native-Windows TensorFlow 2.10 GPU environment because its deterministic `UnsortedSegmentSum` gradient kernel is unavailable
+  - Python, NumPy, TensorFlow seeds, split random states, fold assignments, and manifests remain fixed
+  - set `True` only on a runtime that supports the required deterministic GPU kernels; otherwise training fails before completing an epoch
 - `TRAIN_VERBOSE`
   - default `2` for one concise Keras line per epoch
 - `EPOCHS_HEAD` and `EPOCHS_FINE`

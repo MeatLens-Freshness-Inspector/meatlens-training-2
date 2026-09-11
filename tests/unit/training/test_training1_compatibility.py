@@ -1,5 +1,6 @@
 from meatlens_pork_pipeline.config import (
     END_TO_END_DEFAULTS,
+    PERFORMANCE_DEFAULTS,
     ROBOFLOW_CACHED_BASELINE_STRATEGY,
     TRAINING1_COMPATIBLE_STRATEGY,
     TRAINING_STRATEGIES,
@@ -26,3 +27,7 @@ def test_training1_defaults_match_training1() -> None:
         "augmentation": True,
         "monitor": "val_f1_macro",
     }
+
+
+def test_performance_defaults_avoid_unsupported_tf210_windows_gpu_determinism() -> None:
+    assert PERFORMANCE_DEFAULTS["deterministic_ops"] is False

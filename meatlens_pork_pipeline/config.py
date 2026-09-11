@@ -25,7 +25,10 @@ END_TO_END_DEFAULTS = {
 }
 PERFORMANCE_DEFAULTS = {
     "cache_mode": "memory",
-    "deterministic_ops": True,
+    # TensorFlow 2.10 native Windows GPU lacks a deterministic
+    # UnsortedSegmentSum gradient kernel used by sparse cross-entropy.
+    # Keep seeds/splits deterministic while allowing this pinned runtime to train.
+    "deterministic_ops": False,
     "verbose": 2,
 }
 

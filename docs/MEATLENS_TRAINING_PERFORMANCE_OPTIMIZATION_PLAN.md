@@ -395,10 +395,24 @@ Introduce configuration similar to:
 deterministic_ops = True
 ```
 
-Suggested modes:
+For the pinned native-Windows TensorFlow 2.10 GPU environment, exact
+deterministic GPU kernels are not available for the `UnsortedSegmentSum`
+gradient used by sparse categorical cross-entropy. Therefore the official
+runtime setting is explicitly:
+
+```python
+deterministic_ops = False
+```
+
+This does not disable experiment control. Python, NumPy, TensorFlow seeds,
+split random states, fold assignments, manifests, validation selection, and
+test isolation remain fixed. A runtime that supports the required deterministic
+kernels may opt in to `True` and record that choice.
+
+Suggested modes on a compatible runtime:
 
 ```text
-FINAL / REPRODUCIBILITY RUN
+FINAL / REPRODUCIBILITY RUN (compatible runtime)
 deterministic_ops = True
 
 DEVELOPMENT / PERFORMANCE BENCHMARK
@@ -409,7 +423,9 @@ deterministic_ops = False
 
 Measure both modes.
 
-Do not disable determinism permanently merely because it may be slower.
+Do not describe the pinned Windows GPU run as bitwise deterministic when its
+required deterministic kernel is unavailable; report the runtime limitation
+and preserve the seeded, fixed-manifest experiment controls instead.
 
 Decision rule:
 
@@ -815,7 +831,7 @@ The approved implementation follows the existing package boundaries instead of d
 - `meatlens_pork_pipeline.dataset_pipeline` owns path resolution, TensorFlow decoding/resizing, optional decoded-image caching, batching, shuffling, and prefetching.
 - The end-to-end Keras model owns the existing `geometry_only_v1` random augmentation layers. They run only when `training=True`, so validation and exported inference remain unaugmented while training receives fresh augmentation after deterministic input caching.
 - Macro-F1 is a Keras confusion-matrix metric named `f1_macro`. Keras computes it during its normal validation traversal, removing the callback-driven second prediction pass. Its parity contract is the sklearn reference with `average="macro"` and `zero_division=0`.
-- Deterministic operations remain enabled by default. Performance benchmarking can explicitly set `deterministic_ops=False`; this does not change the Python, NumPy, TensorFlow, split, or manifest seeds.
+- Deterministic GPU operations are disabled by default for the pinned native-Windows TensorFlow 2.10 environment because the required `UnsortedSegmentSum` gradient kernel is unavailable. This does not change the Python, NumPy, TensorFlow, split, or manifest seeds; a compatible runtime may explicitly opt in.
 - Timing is emitted as bounded JSONL records with epoch total, train-batch, validation-batch, and images/second fields. GPU utilization, power, and mixed-precision benefit remain benchmark claims until measured on the RTX 4050 environment.
 - The legacy `CsvImageSequence` remains available for compatibility, but the official training1-compatible strategy uses the TensorFlow dataset path.
 
