@@ -23,7 +23,12 @@ class MacroF1Metric(tf.keras.metrics.Metric):
     def update_state(self, y_true, y_pred, sample_weight=None) -> None:
         del sample_weight
         if y_true.shape.rank is not None and y_true.shape.rank > 1:
-            y_true = tf.argmax(y_true, axis=-1, output_type=tf.int32)
+            # Sparse Keras labels may arrive as (batch, 1); only a final
+            # dimension greater than one represents one-hot class labels.
+            if y_true.shape[-1] == 1:
+                y_true = tf.cast(tf.reshape(y_true, (-1,)), tf.int32)
+            else:
+                y_true = tf.argmax(y_true, axis=-1, output_type=tf.int32)
         else:
             y_true = tf.cast(tf.reshape(y_true, (-1,)), tf.int32)
         y_pred = tf.argmax(y_pred, axis=-1, output_type=tf.int32)

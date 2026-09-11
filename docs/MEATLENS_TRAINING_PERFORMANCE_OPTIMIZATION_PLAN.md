@@ -841,6 +841,8 @@ The implementation gate is deliberately split into correctness, one-fold CPU san
 
 - [x] TensorFlow decode/resize/cache/batch/prefetch pipeline added and covered by unit tests.
 - [x] Streaming macro-F1 added with sklearn parity tests.
+- [x] Macro-F1 corrected for Keras sparse labels with singleton-column shape;
+  the corrected metric now matches sklearn during `model.evaluate`.
 - [x] Official training1-compatible strategy switched away from `CsvImageSequence`.
 - [x] Augmentation moved into the Keras training graph while remaining disabled during validation/inference.
 - [x] Deterministic operations, cache mode, and concise verbosity are explicit controls with reproducibility-preserving defaults.
@@ -867,4 +869,11 @@ than selecting a favorable schedule after seeing test results.
 
 The official claim is therefore limited to the reduced-budget protocol. The
 historical 8+20 results remain a comparator and are not silently overwritten.
+
+The first reduced-budget end-to-end campaign exposed a validation-metric
+integrity defect: Keras supplied sparse labels as `(batch, 1)`, while the
+metric interpreted every rank-two label tensor as one-hot. That campaign is
+retained as pre-correction diagnostic evidence. The official reduced-budget
+result must be regenerated with the corrected metric and a fresh output root;
+the test set remains isolated from model selection.
 

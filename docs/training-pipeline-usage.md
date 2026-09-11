@@ -141,6 +141,9 @@ Procedure controls now exposed through the shared setup and training notebooks:
 - `EPOCHS_HEAD` and `EPOCHS_FINE`
   - official reduced-budget defaults are 4 and 8 maximum epochs, respectively
   - all 8 folds and 3 seeds are retained; this changes the training budget, not the evaluation coverage
+- `f1_macro` label-shape handling
+  - the official metric accepts one-hot labels and sparse labels, including the `(batch, 1)` shape emitted by Keras during evaluation
+  - runs produced before this fix must be rerun before their checkpoint-selection metrics are used as the official result
 - Each fold writes timing records to `logs/<fold>_seed<seed>_performance.jsonl`.
   These records include epoch duration, train/validation batch time, images per
   second, and validation metrics. GPU utilization and mixed-precision benefit
@@ -159,6 +162,12 @@ Strategy and accuracy provenance:
 - `roboflow_cached_baseline_v1` maps to the existing cached-embedding implementation and writes to the original baseline namespace.
 - The recorded Roboflow fold 4 / seed 123 baseline remains exactly `0.927038626609442` (92.7%) under `training_outputs_committable/roboflow/mobilenetv3small_8fold_processed_roi_cnn_only/`.
 - The training-1-compatible rerun has a separate output namespace and does not overwrite or relabel that baseline. Its accuracy must be reported from its own saved predictions after the RTX 4050 run.
+
+The previously completed reduced-budget campaign was generated before the
+sparse-label macro-F1 correction. Its test predictions remain useful as
+diagnostic evidence, but its validation macro-F1 values and best-checkpoint
+selection are not methodologically valid. Preserve that output for audit and
+rerun the same folds and seeds with the corrected code in a new output root.
 
 Key output root:
 

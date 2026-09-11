@@ -25,3 +25,14 @@ def test_macro_f1_metric_resets_between_validation_passes():
     metric.reset_state()
 
     assert float(metric.result()) == 0.0
+
+
+def test_macro_f1_metric_handles_sparse_labels_with_singleton_column_shape():
+    y_true = np.array([[0], [1], [2], [2]], dtype=np.int32)
+    y_pred = np.array([0, 2, 2, 1], dtype=np.int32)
+    metric = MacroF1Metric(num_classes=3)
+    metric.update_state(tf.convert_to_tensor(y_true), tf.one_hot(y_pred, 3))
+
+    assert float(metric.result()) == pytest.approx(
+        f1_score(y_true.reshape(-1), y_pred, average="macro", zero_division=0)
+    )
